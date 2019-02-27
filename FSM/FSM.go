@@ -7,12 +7,13 @@ const (
   MOVING state = 1
   DOOROPEN state = 2
 )
-
-switch state{
-case IDLE:
-  //blablabla
-case MOVING:
-  //blablabla
-case DOOROPEN:
-  //blablabla
+func StateMachine(){
+  switch state{
+  case IDLE:
+    //blablabla
+  case MOVING:
+    //blablabla
+  case DOOROPEN:
+    //blablabla
+  }
 }

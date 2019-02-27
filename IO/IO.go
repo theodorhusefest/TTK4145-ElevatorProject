@@ -1,7 +1,7 @@
 package Hardware
 
 /*
-    Translating C-functions to GOlang
+    //Translating C-functions to GOlang
 */
 import "C"
 
@@ -28,4 +28,3 @@ func io_read_bit(channel int) {
 func io_read_analog(channel int) {
     return int(C.io_read_analog())
 }
-

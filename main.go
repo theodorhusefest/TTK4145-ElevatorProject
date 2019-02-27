@@ -1,19 +1,20 @@
 package main
 
 import (
-  "fmt"
+  //"fmt"
+  "./Initialize"
+  "./utilities"
 )
 
 
 
 
 func main() {
-  elevatorMatrix := [4+NFloors][3*elevators] int{}
 
-  for i:=0; i<4+NFloors; i++ {
-     for j := 0; j<3*elevators; j++{
-       elevatorMatrix[i][j] = 0
-     }
-   }
-   utilities.PrintMatrix(elevatorMatrix,4+NFloors,elevators)
+  const floors = 4
+  const elevators = 5
+
+  elevatorMatrix := initialize.InitializeMatrix(floors,elevators)
+  initialize.AssignIDs(elevatorMatrix)
+  utilities.PrintMatrix(elevatorMatrix,floors,elevators)
 }
