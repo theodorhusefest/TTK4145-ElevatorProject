@@ -2,7 +2,7 @@ package main
 
 import (
   "fmt"
-  "./IO/io"
+  "./IO"
 )
 
 
@@ -63,5 +63,3 @@ func main() {
     }
 }
 
-
-}
