@@ -52,8 +52,10 @@ func Init(addr string, numFloors int) {
 	if err != nil {
 		panic(err.Error())
 	}
-	_initialized = true
+
+		_initialized = true
 }
+
 
 
 
@@ -177,8 +179,7 @@ func getStop() bool {
 	_conn.Read(buf[:])
 	return toBool(buf[1])
 }
-<<<<<<< HEAD
-=======
+
 
 func getObstruction() bool {
 	_mtx.Lock()
@@ -204,4 +205,3 @@ func toBool(a byte) bool {
 	}
 	return b
 }
->>>>>>> 15df9291c6a128aa1a754dc564a1a3400f714280

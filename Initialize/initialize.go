@@ -21,11 +21,19 @@ func InitializeMatrix( floors int, elevators int)[][]int{
 
 func AssignIDs(matrix [][]int){
   //assign ID's to elevators
-  id := 1
+  id := 0
   for i:=0; i<len(matrix[0]);i+=3{
     matrix[0][i] = id
     id++
   }
 }
 
-//func AssignStates(matrix [][]int){
+//function which puts the posistion of elevator ID into the elevator matrix.
+//if elevator is not on a floor, the elevator moves downwards until it hits a sensor
+func InitElevator(elevID int,matrix [][]int, channelFloor chan int){
+
+  io.SetMotorDirection(-1) //elevator goes downwards
+  go io.PollFloorSensor(channelFloor) //the floor is put onto channelFloor
+  matrix[2][elevID*3] = <-channelFloor //channelFloor is stored in matrix
+  io.SetMotorDirection(0) //elevator stops
+}
