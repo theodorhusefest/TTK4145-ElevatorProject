@@ -1,5 +1,9 @@
 package orderManager
 
+import(
+  "../IO"
+  //"../Initialize"
+)
 
 /*
 
@@ -16,12 +20,18 @@ Matrix ID_1        -----------   -----     ID_2        -----------   -----     I
 const numFloors = 4
 const numElevators = 3
 
+//ElevatorMatrix := initialize.InitializeMatrix(numFloors,numElevators)  // Set up matrix, add ID
 
-func newOrder()
+func AddOrder(elevID int, matrix [][]int, buttonPressed io.ButtonEvent) [][]int{
+  matrix[7-buttonPressed.Floor][elevID*numFloors + int(buttonPressed.Button)] = 1
+  return matrix
 
+}
 
+/*
 func isOrderAbove(elevator_floor) {
   for floor := numFloors-; floor< 2; floor++ {
 
   }
 }
+*/
