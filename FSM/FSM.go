@@ -1,5 +1,11 @@
 package FSM
 
+import (
+	"../IO"
+	"time"
+
+)
+
 type state int
 
 const (
@@ -16,4 +22,34 @@ func StateMachine(){
   case DOOROPEN:
     //blablabla
   }
+}
+
+
+
+type FSMChannels struct {
+	newOrder 		chan ButtonEvent
+	floorReached 	chan int
+}
+
+
+func FSM() {
+
+	doorOpenTimer := newTimer(3 * time.Second)
+	doorOpenTimer.Stop()
+
+	for {
+
+		select {
+			case 
+	
+
+		}
+	
+
+
+
+	}
+
+
+
 }
