@@ -15,7 +15,7 @@ func InitializeMatrix( floors int, elevators int)[][]int{
   for i:=0; i< 4+floors;i++{
     matrix[i] = make([]int,3*elevators)
   }
-
+  AssignIDs(matrix)
   return matrix
 }
 
