@@ -3,104 +3,129 @@ package FSM
 import (
 	"../IO"
   "fmt"
-  "../utilities"
-//	"time"
-  "../orderManager"
+  //"../Utilities"
+	. "../Config"
+  "time"
 
 )
 
-type state int
-
-const (
-  IDLE state = 0
-  MOVING state = 1
-  DOOROPEN state = 2
-)
 
 type FSMchannels struct{
-  NewOrderChan chan io.ButtonEvent
+  NewLocalOrderChan chan int
   ArrivedAtFloorChan chan int
   DoorTimeoutChan chan bool
-} //flytt til egen fil
+}
+
+func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevatorMatrix [][]int){
+	elevator := Elevator{
+			State: IDLE,
+			Floor: elevatorMatrix[2][ElevID*NumElevators],
+			Dir: DIR_Stop,
+	}
+
+	doorOpenTimeOut := time.NewTimer(3 * time.Second)
+	doorOpenTimeOut.Stop()
 
 
-const numFloors = 4
-const numElevators = 3
-
-
-func StateMachine(FSMchans FSMchannels, elevatorMatrix [][]int){
   for {
     select {
-    case newOrder := <- FSMchans.NewOrderChan:
-      //Print button pressed
-      fmt.Println(newOrder.Floor)
-      //Add pressed button to matrix
-      orderManager.AddOrder(0, elevatorMatrix, newOrder)
-      // Print matrix
-      utilities.PrintMatrix(elevatorMatrix,4,3)
+    case newLocalOrder := <- FSMchans.NewLocalOrderChan:
+
+			switch elevator.State {
+			case IDLE:
+				elevator.Dir = chooseDirection(elevatorMatrix, elevator)
+				io.SetMotorDirection(elevator.Dir)
+				if elevator.Dir == DIR_Stop {
+					// Open door for 3 seconds
+					io.SetDoorOpenLamp(true)
+					//clearFloors(elevator,elevatorMatrix)
+					elevator.State = DOOROPEN
+					doorOpenTimeOut.Reset(3 * time.Second)
+				}
+				elevator.State = MOVING
 
 
+			case MOVING:
 
 
+			case DOOROPEN:
+				if elevator.Floor == newLocalOrder {
+					doorOpenTimeOut.Reset(3 * time.Second)
+					fmt.Println("Resetting Time")
+				}
+			}
 
-
-      /*
-        If IDLE -> move to floor
-          Choose direction and go
-          */
-          /*if (isOrderAbove()){
-          } else if (isOrderBelow()){
-            io.SetMotorDirection(io.MS_Down)
-          }*/
-          //else: Do nothing?
-
-      /*
-        If Moving
-          Check if order is on the way, stop if true.
-        if Opendoor -> do nothing
-
-      */
 
     case currentFloor := <- FSMchans.ArrivedAtFloorChan:
         //Update floor in matrix
         updateElevFloor(0,currentFloor,elevatorMatrix)
-        if shouldStop(0, currentFloor, elevatorMatrix) {
-          elevatorMatrix[len(elevatorMatrix) - currentFloor - 1][0*3 + 2] = 0
+				elevator.Floor = currentFloor
+				io.SetFloorIndicator(currentFloor)
+        if shouldStop(0, elevator, elevatorMatrix) {
+					elevator.State = DOOROPEN
+					io.SetDoorOpenLamp(true)
+					doorOpenTimeOut.Reset(3 * time.Second)
+					//clearFloors(elevator, elevatorMatrix)
           fmt.Println("stop")
+					io.SetMotorDirection(DIR_Stop)
         }
-        // Print matrix
-        utilities.PrintMatrix(elevatorMatrix,4,3)
 
 
+		case <-doorOpenTimeOut.C:
+			io.SetDoorOpenLamp(false)
+			//clearFloors(elevator, elevatorMatrix)
+			LocalOrderFinishedChan <- elevator.Floor
+			elevator.Dir = chooseDirection(elevatorMatrix, elevator)
+			if elevator.Dir == DIR_Stop {
+				elevator.State = IDLE
+			} else {
+				io.SetMotorDirection(elevator.Dir)
+				elevator.State = MOVING
+			}
 
-
-
-      /*
-        If shouldStop -> stop elevator
-          opendoorLamp
-          clear order in matrix
-          timeout <- doorTimeoutChan
-      */
-
-
-    //case  := <- FSMchans.doorTimeoutChan:
-      /*
-        closedoorLamp
-        state = IDLE
-      */
     }
   }
 }
 
+func matrixIsEmpty(elevatorMatrix [][]int) bool{
+	for floor := 4; floor < 4+ NumFloors; floor++ {
+    for buttons := (ElevID*3); buttons < (ElevID*3 + 3); buttons++ {
+      if elevatorMatrix[floor][buttons] == 1 {
+        return false
+      }
+    }
+  }
+	return true
+}
 
-func updateElevFloor(elevID int, newFloor int, elevatorMatrix [][]int){
-  elevatorMatrix[2][elevID*3] = newFloor
+func updateElevFloor(ElevID int, newFloor int, elevatorMatrix [][]int){
+  elevatorMatrix[2][ElevID*3] = newFloor
   //tror man ikke trenger å returnere matriser
 }
 
-func isOrderAbove(elevID int, currentFloor int, elevatorMatrix [][]int) bool {
-  for floor := (len(elevatorMatrix) - currentFloor - 2); floor > 3; floor-- {
-    for buttons := (elevID*3); buttons < (elevID*3 + 3); buttons++ {
+func isOrderAbove(ElevID int, currentFloor int, elevatorMatrix [][]int) bool {
+	if currentFloor == 3 {
+		return false
+	}
+
+	for floor := (len(elevatorMatrix) - currentFloor - 2); floor > 3; floor-- {
+    for buttons := (ElevID*3); buttons < (ElevID*3 + 3); buttons++ {
+      if elevatorMatrix[floor][buttons] == 1 {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+
+func isOrderBelow(ElevID int, currentFloor int, elevatorMatrix [][]int) bool {
+	if currentFloor == 0 {
+		return false
+	}
+
+	for floor := (len(elevatorMatrix) - currentFloor); floor < (len(elevatorMatrix)); floor++ {
+    for buttons := (ElevID*3); buttons < (ElevID*3 + 3); buttons++ {
       if elevatorMatrix[floor][buttons] == 1 {
         return true
       }
@@ -110,54 +135,35 @@ func isOrderAbove(elevID int, currentFloor int, elevatorMatrix [][]int) bool {
   return false
 }
 
-/*
-func isOrderBelow(elevID int, currentFloor int, elevatorMatrix [][]int) bool {
-  for floor := (len(elevatorMatrix) - currentFloor); floor > (len(elevatorMatrix) - 1); floor++ {
-    for buttons := (elevID*3); buttons < (elevID*3 + 3); buttons++ {
-      if elevatorMatrix[floor][buttons] == 1 {
-        return true
-      }
-    }
-
-  }
-  return false
-}
-*/
-
-func shouldStop(elevID int, currentFloor int, elevatorMatrix [][]int) bool {
+func shouldStop(ElevID int, elevator Elevator, elevatorMatrix [][]int) bool {
   //Cab call is pressed, stop
-  if elevatorMatrix[len(elevatorMatrix) - currentFloor - 1][elevID*3 + 2] == 1 {
+  if elevatorMatrix[len(elevatorMatrix) - elevator.Floor - 1][ElevID*NumElevators + 2] == 1 {
     return true
   }
-
-  // Also stop if elevator is going in the same direction
-
-
+	switch elevator.Dir{
+	case DIR_Up:
+		if elevatorMatrix[len(elevatorMatrix) - elevator.Floor - 1][ElevID*NumElevators] == 1 {
+	    return true
+	  } else if elevatorMatrix[len(elevatorMatrix) - elevator.Floor - 1][ElevID*NumElevators + 1] == 1 && !isOrderAbove(ElevID, elevator.Floor, elevatorMatrix) {
+			return true
+		}
+	case DIR_Down:
+		if elevatorMatrix[len(elevatorMatrix) - elevator.Floor - 1][ElevID*NumElevators + 1] == 1 {
+	    return true
+	  } else if elevatorMatrix[len(elevatorMatrix) - elevator.Floor - 1][ElevID*NumElevators] == 1 && !isOrderBelow(ElevID, elevator.Floor, elevatorMatrix) {
+			return true
+		}
+	}
   return false
 }
 
+func chooseDirection(elevatorMatrix [][]int, elevator Elevator) MotorDirection {
 
-
-
-
-
-
-
-
-
-
-/*
-func isOrderAbove(elevID int, order int, elevMatrix [][]int) bool{
-  if (order > elevMatrix[elevID*3][2]){
-    return true
-  }
-  return false
+	if isOrderAbove(ElevID, elevator.Floor, elevatorMatrix){
+		return DIR_Up
+	}
+	if isOrderBelow(ElevID, elevator.Floor, elevatorMatrix){
+		return DIR_Down
+	}
+	return DIR_Stop
 }
-
-func isOrderBelow(elevID int, order int, elevMatrix [][]int) bool{
-  if (order < elevMatrix[elevID*3][2]){
-    return true
-  }
-  return false
-}
-*/
