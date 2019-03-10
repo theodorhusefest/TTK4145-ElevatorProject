@@ -3,7 +3,7 @@ package main
 import (
 //  "fmt"
   "./Initialize"
-  "./utilities"
+//  "./utilities"
   //"./orderManager"
   "./IO"
   "./FSM"
@@ -50,6 +50,5 @@ func main() {
     }
   }
 */
-  utilities.PrintMatrix(elevatorMatrix,numFloors,numElevators)
   select{}
 }
