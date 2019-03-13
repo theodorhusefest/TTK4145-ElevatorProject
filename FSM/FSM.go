@@ -41,6 +41,7 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevato
 					//clearFloors(elevator,elevatorMatrix)
 					elevator.State = DOOROPEN
 					doorOpenTimeOut.Reset(3 * time.Second)
+					LocalOrderFinishedChan <- elevator.Floor
 				}
 				elevator.State = MOVING
 
@@ -52,6 +53,7 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevato
 				if elevator.Floor == newLocalOrder {
 					doorOpenTimeOut.Reset(3 * time.Second)
 					fmt.Println("Resetting Time")
+					LocalOrderFinishedChan <- elevator.Floor
 				}
 			}
 
@@ -68,21 +70,21 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevato
 					//clearFloors(elevator, elevatorMatrix)
           fmt.Println("stop")
 					io.SetMotorDirection(DIR_Stop)
+					LocalOrderFinishedChan <- elevator.Floor
         }
 
 
 		case <-doorOpenTimeOut.C:
 			io.SetDoorOpenLamp(false)
-			//clearFloors(elevator, elevatorMatrix)
-			LocalOrderFinishedChan <- elevator.Floor
 			elevator.Dir = chooseDirection(elevatorMatrix, elevator)
+			io.SetMotorDirection(elevator.Dir)
+			LocalOrderFinishedChan <- elevator.Floor
 			if elevator.Dir == DIR_Stop {
 				elevator.State = IDLE
 			} else {
-				io.SetMotorDirection(elevator.Dir)
+				//io.SetMotorDirection(elevator.Dir)
 				elevator.State = MOVING
 			}
-
     }
   }
 }

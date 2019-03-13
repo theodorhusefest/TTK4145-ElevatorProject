@@ -3,6 +3,7 @@ package orderManager
 import(
   . "../Config"
   "../Utilities"
+  "../IO"
 )
 
 /*
@@ -43,14 +44,19 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
       // if own elevator send to newLocalOrder
       NewLocalOrderChan <- int(newGlobalOrder.Floor)
-
+      setLight(newGlobalOrder)
     //case UpdateElevator := <- UpdateElevatorChan:
 
     case LocalOrderFinished := <- OrderManagerChans.LocalOrderFinishedChan:
       clearFloors(LocalOrderFinished, elevatorMatrix)
+      clearLight(LocalOrderFinished)
       utilities.PrintMatrix(elevatorMatrix,4,3)
 
     // case newNetworkOrder
+
+
+
+
     // case orderFinished
 
     }
@@ -70,4 +76,15 @@ func clearFloors(currentFloor int, elevatorMatrix [][]int) {
 	for button:=0; button < 4; button++ {
 		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+ElevID*NumElevators] = 0
 	}
+}
+
+func setLight(newGlobalOrder ButtonEvent) {
+  //Set button lamp
+  io.SetButtonLamp(newGlobalOrder.Button, newGlobalOrder.Floor, true)
+}
+
+func clearLight(LocalOrderFinished int) {
+	io.SetButtonLamp(BT_Cab, LocalOrderFinished, false)
+  io.SetButtonLamp(BT_HallUp, LocalOrderFinished, false)
+  io.SetButtonLamp(BT_HallDown, LocalOrderFinished, false)
 }
