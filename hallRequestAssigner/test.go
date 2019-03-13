@@ -4,6 +4,7 @@ package main
 import "fmt"
 import "encoding/json"
 import "os"
+import "os/exec"
 
 func main(){
     /*
@@ -65,7 +66,7 @@ func main(){
         HallRequests: [][]bool{{false, false},{true, false},{false, false},{false, true}},
         States: ElevStates,
     }
-    fmt.Println(Msg)
+    //fmt.Println(Msg)
     fmt.Println()
 
     
@@ -73,7 +74,8 @@ func main(){
     if err != nil {
         fmt.Println("Error")
     }
-    os.Stdout.Write(jsonMsg)
+    //os.Stdout.Write(jsonMsg)
+    (exec.Command("gnome-terminal", "-x", "sh", "-c", "./hall_request_assigner -i jsonMsg")).Run()
 
 }
 
