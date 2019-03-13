@@ -3,20 +3,30 @@ package syncElevator
 import (
   "fmt"
   "time"
+  "../Network/network/peers"
+//  "../Config"
 )
 
 
+
 type SyncElevatorChannels struct{
-  OutGoingOrder chan ??
-  InComingOrder chan ??
-  PeerUpdate chan ??
+//  OutGoingOrder chan ??
+//  InComingOrder chan ??
+  PeerUpdate chan peers.PeerUpdate
+  BroadcastTicker chan bool
 }
 
-func SyncElevator(syncChans SyncChannels){
-  broadcastTicker(syncChans)
+func SyncElevator(syncChans SyncElevatorChannels){
+//  broadcastTicker(syncChans)
 
+  ticker := time.NewTicker(50 * time.Millisecond)
 
   for{
+    select {
+    case <- ticker.C:
+      fmt.Println("hei")
+    }
+/*
     select{
 
     //New local order, insert into msg for transmitting
@@ -45,13 +55,7 @@ func SyncElevator(syncChans SyncChannels){
     //If only you, start singelmode
 
     }
+
+*/
   }
-}
-
-
-
-func broadcastTicker(syncChans SyncChannels){
-  timer := time.NewTimer(5*time.Millisecond)
-  <-timer.C
-  syncChans.broadcastTicker<-true
 }

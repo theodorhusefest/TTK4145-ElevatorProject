@@ -41,3 +41,10 @@ type Elevator struct{
   Floor int
   Dir MotorDirection
 }
+
+type Message struct {
+  // new order [3]int     [floor, button, value]
+  // Order complete
+  //  Acknowledge
+
+}

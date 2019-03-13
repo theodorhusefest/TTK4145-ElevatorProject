@@ -3,7 +3,7 @@ package main
 
 import "fmt"
 import "encoding/json"
-import "os"
+
 import "os/exec"
 
 func main(){
@@ -28,7 +28,7 @@ func main(){
     }
     */
 
-    type ElevatorStruct struct{ 
+    type ElevatorStruct struct{
         Behaviour string
         Floor int
         Direction string
@@ -37,7 +37,7 @@ func main(){
 
     type Elevators struct{
         ElevOne ElevatorStruct
-        ElevTwo ElevatorStruct 
+        ElevTwo ElevatorStruct
     }
     type Message struct{
         HallRequests [][]bool
@@ -69,13 +69,12 @@ func main(){
     //fmt.Println(Msg)
     fmt.Println()
 
-    
+
     jsonMsg, err := json.Marshal(Msg)
     if err != nil {
         fmt.Println("Error")
     }
     //os.Stdout.Write(jsonMsg)
-    (exec.Command("gnome-terminal", "-x", "sh", "-c", "./hall_request_assigner -i jsonMsg")).Run()
+    (exec.Command("gnome-terminal", "-x", "sh", "-c", "./hall_request_assigner -i", jsonMsg)).Run()
 
 }
-

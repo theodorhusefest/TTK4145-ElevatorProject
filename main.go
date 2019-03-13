@@ -9,6 +9,7 @@ import (
   "./IO"
   "./FSM"
   "./elevatorSync"
+  "./Network/network/peers"
   "time"
 )
 
@@ -28,10 +29,11 @@ func main() {
     UpdateElevatorChan: make(chan Elevator),
     LocalOrderFinishedChan: make(chan int),
   }
-  syncElevatorChan := syncElevator.SyncElevatorChannels{
-    OutGoingOrder: make(chan ??)
-    InComingOrder: make(chan ??)
-    PeerUpdate: make(chan ??)
+  syncElevatorChans := syncElevator.SyncElevatorChannels{
+  //  OutGoingOrder: make(chan ??)
+    //InComingOrder: make(chan ??)
+    PeerUpdate: make(chan peers.PeerUpdate),
+    BroadcastTicker: make(chan bool),
   }
   var (
     NewGlobalOrderChan = make(chan ButtonEvent)
@@ -54,7 +56,7 @@ func main() {
   go io.PollButtons(NewGlobalOrderChan)
   go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix)
 
-
+  go syncElevator.SyncElevator(syncElevatorChans)
 
   time.Sleep(10*time.Second)
   utilities.PrintMatrix(elevatorMatrix, NumFloors, NumElevators)
