@@ -8,6 +8,7 @@ import (
   "./orderManager"
   "./IO"
   "./FSM"
+  "./elevatorSync"
   "time"
 )
 
@@ -23,10 +24,14 @@ func main() {
     ArrivedAtFloorChan: make(chan int),
     DoorTimeoutChan:  make(chan bool),
   }
-
   OrderManagerchans := orderManager.OrderManagerChannels{
     UpdateElevatorChan: make(chan Elevator),
     LocalOrderFinishedChan: make(chan int),
+  }
+  syncElevatorChan := syncElevator.SyncElevatorChannels{
+    OutGoingOrder: make(chan ??)
+    InComingOrder: make(chan ??)
+    PeerUpdate: make(chan ??)
   }
   var (
     NewGlobalOrderChan = make(chan ButtonEvent)
@@ -35,6 +40,11 @@ func main() {
   channelFloor := make(chan int) //channel that is used in InitElevator. Should maybe have a struct with channels?
   elevatorMatrix := initialize.InitializeMatrix(NumFloors,NumElevators)  // Set up matrix, add ID
   initialize.InitElevator(0,elevatorMatrix,channelFloor)  // Move elevator to nearest floor and update matrix
+
+
+
+
+
 
   // FSM goroutines
   go io.PollFloorSensor(FSMchans.ArrivedAtFloorChan)
@@ -49,7 +59,7 @@ func main() {
   time.Sleep(10*time.Second)
   utilities.PrintMatrix(elevatorMatrix, NumFloors, NumElevators)
 
-
+  //initialize network module
 
 /*
   for {
