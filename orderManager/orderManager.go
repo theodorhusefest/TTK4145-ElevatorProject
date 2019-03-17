@@ -100,7 +100,11 @@ func addOrder(id int, matrix [][]int, buttonPressed ButtonEvent) [][]int{
 
 func clearFloors(currentFloor int, elevatorMatrix [][]int, id int) {
 	for button:=0; button < NumFloors; button++ {
+<<<<<<< HEAD
 		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators-1] = 0
+=======
+		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*(NumElevators-1)] = 0
+>>>>>>> 4cd99c6acb836cc1fc6c46ea7e962d0106ccedcd
 	}
 }
 

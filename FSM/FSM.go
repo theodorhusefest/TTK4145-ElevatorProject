@@ -33,6 +33,7 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevato
 
 			switch elevator.State {
 			case IDLE:
+				fmt.Println(IDLE)
 				elevator.Dir = chooseDirection(elevatorConfig.ElevID, elevatorMatrix, elevator)
 				io.SetMotorDirection(elevator.Dir)
 				if elevator.Dir == DIR_Stop {
@@ -168,4 +169,16 @@ func chooseDirection(id int,elevatorMatrix [][]int, elevator Elevator) MotorDire
 		return DIR_Down
 	}
 	return DIR_Stop
+}
+
+func StateToInt(state ElevState) int{
+	switch state{
+	case IDLE:
+		return 0
+	case MOVING:
+		return 1
+	case DOOROPEN:
+		return 2
+	}
+	return -1
 }
