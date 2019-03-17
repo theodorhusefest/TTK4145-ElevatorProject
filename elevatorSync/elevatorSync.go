@@ -1,8 +1,8 @@
 package syncElevator
 
 import (
-  "fmt"
-  "time"
+  //"fmt"
+  //"time"
   "../Network/network/peers"
 //  "../Config"
 )
@@ -20,15 +20,27 @@ type SyncElevatorChannels struct{
 func SyncElevator(syncChans SyncElevatorChannels){
 //  broadcastTicker(syncChans)
 
-  broadCastTicker := time.NewTicker(500 * time.Millisecond)
+//  broadCastTicker := time.NewTicker(500 * time.Millisecond)
+
+
 
   for{
     select {
-    case <- broadCastTicker.C:
+    /*case <- broadCastTicker.C:
       fmt.Println("hei")
-    case peer := <- syncChans.PeerUpdate:
+*/
+    /*case peer := <- syncChans.PeerUpdate:
+      if(len(peer.Peers) == 0){
+        //This elevator is offline
+        //single elevator mode
+
+      }elseif(len(peer.Peers)==1){
+        //every other elevator is offline or not created
+        //single elevator mode
+      }
       fmt.Println(peer.Peers)
-    }
+      orderManager.addOrder(peer.Peers[id],)
+    } */
 /*
     select{
 
@@ -61,4 +73,5 @@ func SyncElevator(syncChans SyncElevatorChannels){
 
 */
   }
+}
 }

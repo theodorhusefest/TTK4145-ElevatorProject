@@ -6,7 +6,7 @@ import (
   //"../Utilities"
 	. "../Config"
   "time"
-
+  "../Config"
 )
 
 
@@ -16,10 +16,10 @@ type FSMchannels struct{
   DoorTimeoutChan chan bool
 }
 
-func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevatorMatrix [][]int){
+func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevatorMatrix [][]int, elevatorConfig config.ElevConfig){
 	elevator := Elevator{
 			State: IDLE,
-			Floor: elevatorMatrix[2][ElevID*NumElevators],
+			Floor: elevatorMatrix[2][elevatorConfig.ElevID*elevatorConfig.NumElevators],
 			Dir: DIR_Stop,
 	}
 
@@ -60,10 +60,10 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevato
 
     case currentFloor := <- FSMchans.ArrivedAtFloorChan:
         //Update floor in matrix
-        updateElevFloor(0,currentFloor,elevatorMatrix)
+        updateElevFloor(elevatorConfig.ElevID,currentFloor,elevatorMatrix)
 				elevator.Floor = currentFloor
 				io.SetFloorIndicator(currentFloor)
-        if shouldStop(0, elevator, elevatorMatrix) {
+        if shouldStop(elevatorConfig.ElevID, elevator, elevatorMatrix) {
 					elevator.State = DOOROPEN
 					io.SetDoorOpenLamp(true)
 					doorOpenTimeOut.Reset(3 * time.Second)
@@ -89,9 +89,9 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevato
   }
 }
 
-func matrixIsEmpty(elevatorMatrix [][]int) bool{
+func matrixIsEmpty(elevatorMatrix [][]int, elevatorConfig config.ElevConfig) bool{
 	for floor := 4; floor < 4+ NumFloors; floor++ {
-    for buttons := (ElevID*3); buttons < (ElevID*3 + 3); buttons++ {
+    for buttons := (elevatorConfig.ElevID*3); buttons < (elevatorConfig.ElevID*3 + 3); buttons++ {
       if elevatorMatrix[floor][buttons] == 1 {
         return false
       }

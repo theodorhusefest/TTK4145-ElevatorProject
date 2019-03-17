@@ -4,6 +4,8 @@ import(
   . "../Config"
   "../Utilities"
   "../IO"
+  "../Config"
+  //"fmt"
 )
 
 /*
@@ -25,7 +27,7 @@ type OrderManagerChannels struct{
 }
 
 
-func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,  elevatorMatrix [][]int) {
+func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,  elevatorMatrix [][]int, elevatorConfig config.ElevConfig) {
   for {
     select {
     case newGlobalOrder := <- NewGlobalOrderChan:
@@ -35,7 +37,7 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
 
       // Update matrix
-      addOrder(0, elevatorMatrix, newGlobalOrder)
+      addOrder(elevatorConfig, elevatorMatrix, newGlobalOrder)
 
       // Send to network
 
@@ -48,7 +50,7 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
     //case UpdateElevator := <- UpdateElevatorChan:
 
     case LocalOrderFinished := <- OrderManagerChans.LocalOrderFinishedChan:
-      clearFloors(LocalOrderFinished, elevatorMatrix)
+      clearFloors(LocalOrderFinished, elevatorMatrix, elevatorConfig)
       clearLight(LocalOrderFinished)
       utilities.PrintMatrix(elevatorMatrix,4,3)
 
@@ -66,15 +68,15 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
 
 
-func addOrder(elevID int, matrix [][]int, buttonPressed ButtonEvent) [][]int{
-  matrix[7-buttonPressed.Floor][elevID*NumFloors + int(buttonPressed.Button)] = 1
+func addOrder(conf config.ElevConfig, matrix [][]int, buttonPressed ButtonEvent) [][]int{
+  matrix[conf.NumFloors+3-buttonPressed.Floor][conf.ElevID*conf.NumElevators + int(buttonPressed.Button)] = 1
   return matrix
 }
 
 
-func clearFloors(currentFloor int, elevatorMatrix [][]int) {
-	for button:=0; button < 4; button++ {
-		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+ElevID*NumElevators] = 0
+func clearFloors(currentFloor int, elevatorMatrix [][]int, conf config.ElevConfig) {
+	for button:=0; button < conf.NumFloors; button++ {
+		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+conf.ElevID*conf.NumElevators] = 0
 	}
 }
 

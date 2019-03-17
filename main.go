@@ -11,6 +11,7 @@ import (
   "./elevatorSync"
   "./Network/network/peers"
   "time"
+
 )
 
 
@@ -18,7 +19,14 @@ import (
 
 func main() {
 
+  elevatorMatrix, elevConfig := initialize.Initialize()
+
+
+
+
   io.Init("localhost:15657",4)
+
+
 
   FSMchans := FSM.FSMchannels{
     NewLocalOrderChan: make(chan int),
@@ -41,9 +49,9 @@ func main() {
   )
 
   channelFloor := make(chan int) //channel that is used in InitElevator. Should maybe have a struct with channels?
-  elevatorMatrix := initialize.InitializeMatrix(NumFloors,NumElevators)  // Set up matrix, add ID
-  initialize.InitElevator(0,elevatorMatrix,channelFloor)  // Move elevator to nearest floor and update matrix
-
+  //elevatorMatrix := initialize.InitializeMatrix(NumFloors,NumElevators)  // Set up matrix, add ID
+  initialize.InitElevator(elevConfig,elevatorMatrix,channelFloor)  // Move elevator to nearest floor and update matrix
+  utilities.PrintMatrix(elevatorMatrix, elevConfig.NumFloors,elevConfig.NumElevators)
 
 
 
@@ -51,17 +59,16 @@ func main() {
 
   // FSM goroutines
   go io.PollFloorSensor(FSMchans.ArrivedAtFloorChan)
-  go FSM.StateMachine(FSMchans, OrderManagerchans.LocalOrderFinishedChan, elevatorMatrix)
+  go FSM.StateMachine(FSMchans, OrderManagerchans.LocalOrderFinishedChan, elevatorMatrix,elevConfig)
 
   // OrderManager goroutines
   go io.PollButtons(NewGlobalOrderChan)
-  go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix)
+  go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix, elevConfig)
 
 
   //Sync
   go syncElevator.SyncElevator(SyncElevatorChans)
-  go peers.Transmitter(15789, string("Heis0"), SyncElevatorChans.TransmitEnable)
-  go peers.Transmitter(15789, string("Heis1"), SyncElevatorChans.TransmitEnable)
+  go peers.Transmitter(15789, string("0"), SyncElevatorChans.TransmitEnable)
   go peers.Receiver(15789, SyncElevatorChans.PeerUpdate)
 
 
