@@ -34,6 +34,7 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 //  }
   for {
     select {
+<<<<<<< HEAD
       /*
       1: Ordre tas imot av en heis.
       2: Den heisen kjører kostfunksjon og bestemmer hvem som får jobben.
@@ -75,6 +76,11 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
       // Send message for order done
       OutGoingMsg <- message
+=======
+    case newGlobalOrder := <- NewGlobalOrderChan:
+
+      // Costfunction(elevatorMatrix)
+>>>>>>> 4e776ed6fc341eec8e9b585f45097d102286d199
 
       // Wait for everyone to agree
 
@@ -112,12 +118,11 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
 
 
-    //case orderFinished
+    // case orderFinished
 
     }
   }
 }
-
 
 
 
@@ -132,6 +137,22 @@ func clearFloors(currentFloor int, elevatorMatrix [][]int, id int) {
 		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators] = 0
 	}
 }
+
+func InsertState(id int, state int, matrix [][]int){
+  matrix[1][3*id] = state
+}
+
+func InsertDirection(id int, elevator config.Elevator, matrix [][]int){
+  switch elevator.Dir{
+    case DIR_Up:
+      matrix[3][3*id] = 1
+    case DIR_Down:
+      matrix[3][3*id] = 2
+    case DIR_Stop:
+      matrix[3][3*id] = 0
+  }
+}
+
 
 func setLight(newGlobalOrder ButtonEvent) {
   //Set button lamp

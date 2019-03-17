@@ -3,10 +3,11 @@ package FSM
 import (
 	"../IO"
   "fmt"
-  //"../Utilities"
+  "../orderManager"
 	. "../Config"
   "time"
   "../Config"
+
 )
 
 
@@ -33,18 +34,22 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevato
 
 			switch elevator.State {
 			case IDLE:
-				fmt.Println(IDLE)
+				//fmt.Println(IDLE)
+				orderManager.InsertState(elevatorConfig.ElevID, 0, elevatorMatrix)
 				elevator.Dir = chooseDirection(elevatorConfig.ElevID, elevatorMatrix, elevator)
 				io.SetMotorDirection(elevator.Dir)
+				orderManager.InsertDirection(elevatorConfig.ElevID,elevator, elevatorMatrix)
 				if elevator.Dir == DIR_Stop {
 					// Open door for 3 seconds
 					io.SetDoorOpenLamp(true)
 					//clearFloors(elevator,elevatorMatrix)
 					elevator.State = DOOROPEN
+					orderManager.InsertState(elevatorConfig.ElevID, 2, elevatorMatrix)
 					doorOpenTimeOut.Reset(3 * time.Second)
 					LocalOrderFinishedChan <- elevator.Floor
 				}
 				elevator.State = MOVING
+				orderManager.InsertState(elevatorConfig.ElevID, 1, elevatorMatrix)
 
 
 			case MOVING:
@@ -66,25 +71,35 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, elevato
 				io.SetFloorIndicator(currentFloor)
         if shouldStop(elevatorConfig.ElevID, elevator, elevatorMatrix) {
 					elevator.State = DOOROPEN
+					orderManager.InsertState(elevatorConfig.ElevID, 2, elevatorMatrix)
 					io.SetDoorOpenLamp(true)
+
 					doorOpenTimeOut.Reset(3 * time.Second)
 					//clearFloors(elevator, elevatorMatrix)
+
           fmt.Println("stop")
 					io.SetMotorDirection(DIR_Stop)
+					orderManager.InsertDirection(elevatorConfig.ElevID,elevator, elevatorMatrix)
+
 					LocalOrderFinishedChan <- elevator.Floor
         }
 
 
 		case <-doorOpenTimeOut.C:
+
 			io.SetDoorOpenLamp(false)
 			elevator.Dir = chooseDirection(elevatorConfig.ElevID,elevatorMatrix, elevator)
+			orderManager.InsertDirection(elevatorConfig.ElevID,elevator, elevatorMatrix)
 			io.SetMotorDirection(elevator.Dir)
 			LocalOrderFinishedChan <- elevator.Floor
 			if elevator.Dir == DIR_Stop {
 				elevator.State = IDLE
+					orderManager.InsertState(elevatorConfig.ElevID, 0, elevatorMatrix)
 			} else {
 				//io.SetMotorDirection(elevator.Dir)
 				elevator.State = MOVING
+					orderManager.InsertState(elevatorConfig.ElevID, 1, elevatorMatrix)
+				fmt.Println(MOVING)
 			}
     }
   }
@@ -169,16 +184,4 @@ func chooseDirection(id int,elevatorMatrix [][]int, elevator Elevator) MotorDire
 		return DIR_Down
 	}
 	return DIR_Stop
-}
-
-func StateToInt(state ElevState) int{
-	switch state{
-	case IDLE:
-		return 0
-	case MOVING:
-		return 1
-	case DOOROPEN:
-		return 2
-	}
-	return -1
 }

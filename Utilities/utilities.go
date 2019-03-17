@@ -2,6 +2,7 @@ package utilities
 
 import (
   "fmt"
+  //"../Config"
 )
 
 //a function which prints out any given matrix to terminal
@@ -20,3 +21,18 @@ func PrintMatrix(matrix [][]int ,n int, m int){
   }
   fmt.Println(" ")
 }
+
+/*
+func StateToInt(elevator config.Elevator) int{
+  state := elevator.State
+	switch state{
+	case state.IDLE:
+		return 0
+	case MOVING:
+		return 1
+	case DOOROPEN:
+		return 2
+	}
+	return -1
+}
+*/
