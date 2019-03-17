@@ -1,7 +1,7 @@
 package main
 
 import (
-//  "fmt"
+//"fmt"
   . "./Config"
   "./Initialize"
   "./Utilities"
@@ -12,6 +12,7 @@ import (
   "./Network/network/peers"
   "./Network/network/bcast"
   "time"
+  "strconv"
 
 )
 
@@ -71,7 +72,7 @@ func main() {
 
   //Sync
   go syncElevator.SyncElevator(SyncElevatorChans, elevConfig)
-  go peers.Transmitter(15789, string("0"), SyncElevatorChans.TransmitEnable)
+  go peers.Transmitter(15789, strconv.Itoa(elevConfig.ElevID), SyncElevatorChans.TransmitEnable)
   go peers.Receiver(15789, SyncElevatorChans.PeerUpdate)
 
 
