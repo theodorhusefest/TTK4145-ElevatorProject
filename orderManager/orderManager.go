@@ -34,25 +34,9 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
   }
   for {
     select {
-      /*
-      1: Ordre tas imot av en heis.
-      2: Den heisen kjører kostfunksjon og bestemmer hvem som får jobben.
-      3: Heisen oppdaterer sin egen matrise med ordren til riktig heis.
-      4: Heisen sender ordren til alle andre heiser, så alle er oppdatert.
-      5: Den heisen som får jobben, trigger sin egen FSM med        NewLocalOrderChan <- int(newGlobalOrder.Floor)
-      6: Heisen som har utført et oppdrag fjerner først fra egen matrise, før den oppdaterer de andre.
-      */
-
-    // Case triggered by local button
     case newGlobalOrder := <- NewGlobalOrderChan:
+
       // Costfunction(elevatorMatrix)
-
-
-
-
-
-
-
 
 
       // Update matrix
@@ -83,12 +67,11 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
 
 
-    //case orderFinished
+    // case orderFinished
 
     }
   }
 }
-
 
 
 
@@ -99,14 +82,26 @@ func addOrder(id int, matrix [][]int, buttonPressed ButtonEvent) [][]int{
 
 
 func clearFloors(currentFloor int, elevatorMatrix [][]int, id int) {
-	for button:=0; button < NumFloors; button++ {
-<<<<<<< HEAD
-		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators-1] = 0
-=======
-		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*(NumElevators-1)] = 0
->>>>>>> 4cd99c6acb836cc1fc6c46ea7e962d0106ccedcd
+	for button:=0; button < NumElevators; button++ {
+		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators] = 0
 	}
 }
+
+func InsertState(id int, state int, matrix [][]int){
+  matrix[1][3*id] = state
+}
+
+func InsertDirection(id int, elevator config.Elevator, matrix [][]int){
+  switch elevator.Dir{
+    case DIR_Up:
+      matrix[3][3*id] = 1
+    case DIR_Down:
+      matrix[3][3*id] = 2
+    case DIR_Stop:
+      matrix[3][3*id] = 0
+  }
+}
+
 
 func setLight(newGlobalOrder ButtonEvent) {
   //Set button lamp
