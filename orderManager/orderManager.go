@@ -34,16 +34,32 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
   }
   for {
     select {
-    case newGlobalOrder := <- NewGlobalOrderChan:
+      /*
+      1: Ordre tas imot av en heis.
+      2: Den heisen kjører kostfunksjon og bestemmer hvem som får jobben.
+      3: Heisen oppdaterer sin egen matrise med ordren til riktig heis.
+      4: Heisen sender ordren til alle andre heiser, så alle er oppdatert.
+      5: Den heisen som får jobben, trigger sin egen FSM med        NewLocalOrderChan <- int(newGlobalOrder.Floor)
+      6: Heisen som har utført et oppdrag fjerner først fra egen matrise, før den oppdaterer de andre.
+      */
 
+    // Case triggered by local button
+    case newGlobalOrder := <- NewGlobalOrderChan:
       // Costfunction(elevatorMatrix)
+
+
+
+
+
+
+
 
 
       // Update matrix
       addOrder(elevatorConfig.ElevID, elevatorMatrix, newGlobalOrder)
 
       // Send to network
-      message.ID = 1
+      message.ID = 2
       message.Floor = newGlobalOrder.Floor
       message.Button = newGlobalOrder.Button
       MessageToSend <- message
@@ -67,7 +83,7 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
 
 
-    // case orderFinished
+    //case orderFinished
 
     }
   }
@@ -84,7 +100,7 @@ func addOrder(id int, matrix [][]int, buttonPressed ButtonEvent) [][]int{
 
 func clearFloors(currentFloor int, elevatorMatrix [][]int, id int) {
 	for button:=0; button < NumFloors; button++ {
-		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators] = 0
+		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators-1] = 0
 	}
 }
 

@@ -146,7 +146,7 @@ func shouldStop(id int, elevator Elevator, elevatorMatrix [][]int) bool {
 	case DIR_Up:
 		if elevatorMatrix[len(elevatorMatrix) - elevator.Floor - 1][id*NumElevators] == 1 {
 	    return true
-	  } else if elevatorMatrix[len(elevatorMatrix) - elevator.Floor - 1][id*NumElevators + 1] == 1 && !isOrderAbove(ElevID, elevator.Floor, elevatorMatrix) {
+	  } else if elevatorMatrix[len(elevatorMatrix) - elevator.Floor - 1][id*NumElevators + 1] == 1 && !isOrderAbove(id, elevator.Floor, elevatorMatrix) {
 			return true
 		}
 	case DIR_Down:

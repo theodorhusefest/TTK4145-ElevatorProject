@@ -72,14 +72,12 @@ func main() {
 
   //Sync
   go syncElevator.SyncElevator(SyncElevatorChans, elevConfig)
+
+  //Update peers
   go peers.Transmitter(15789, strconv.Itoa(elevConfig.ElevID), SyncElevatorChans.TransmitEnable)
   go peers.Receiver(15789, SyncElevatorChans.PeerUpdate)
 
-
-
-
-
-  // Test sende over ordre
+  //Send/recieve orders
   go bcast.Transmitter(15790, SyncElevatorChans.OutGoingOrder)
   go bcast.Receiver(15790, SyncElevatorChans.InComingOrder)
 

@@ -48,10 +48,13 @@ type Elevator struct{
   Dir MotorDirection
 }
 
+// Struct for sendig of messages
 type Message struct {
+  //ID, FLOOR & BUTTON for updating the matrix
   ID int
   Floor int
   Button ButtonType
+
   // Order complete
   //  Acknowledge
 
