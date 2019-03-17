@@ -10,10 +10,9 @@ import (
 
 
 type SyncElevatorChannels struct{
-  OutGoingOrder chan config.Message
-  MessageToSend chan config.Message
-  InComingOrder chan config.Message
-  MessageRecieved chan config.Message
+  OutGoingMsg chan config.Message
+  InCommingMsg chan config.Message
+  ChangeInOrder chan config.Message
   PeerUpdate chan peers.PeerUpdate
   TransmitEnable chan bool
   BroadcastTicker chan bool
@@ -28,18 +27,27 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConf
 
   for{
     select {
-    //Transmit message from orderManager
-    case msg := <- syncChans.MessageToSend:
-      message.ID = msg.ID
-      message.Floor = msg.Floor
-      message.Button = msg.Button
-      syncChans.OutGoingOrder <- message
+    case ChangeInOrder := <- syncChans.InCommingMsg:
 
-    case msg := <- syncChans.InComingOrder:
-      message.ID = msg.ID
-      message.Floor = msg.Floor
-      message.Button = msg.Button
-      syncChans.MessageRecieved <- message
+    // Check if incomming message is of order-done. If so, remove that order
+    if ChangeInOrder.Done {
+      message.Floor = 1
+    } else if ChangeInOrder.Select == 1 {
+      // ADD ORDER TO LOCAL ELEVATOR VIA NewNetworkOrder channel
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    //Transmit message from orderManager
 
 
     //Update peers

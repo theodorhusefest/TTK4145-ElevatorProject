@@ -5,7 +5,7 @@ import(
   "../Utilities"
   "../IO"
   "../Config"
-  //"fmt"
+//  "fmt"
 )
 
 /*
@@ -27,58 +27,87 @@ type OrderManagerChannels struct{
 }
 
 
-func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,  elevatorMatrix [][]int, OutGoingOrder chan Message, MessageToSend chan Message, MessageRecieved chan Message, elevatorConfig config.ElevConfig) {
+func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,  elevatorMatrix [][]int, OutGoingMsg chan Message, ChangeInOrder chan Message, elevatorConfig config.ElevConfig) {
   message := Message{
   }
-  localOrder := ButtonEvent{
-  }
+//  localOrder := ButtonEvent{
+//  }
   for {
     select {
       /*
       1: Ordre tas imot av en heis.
       2: Den heisen kjører kostfunksjon og bestemmer hvem som får jobben.
-      3: Heisen oppdaterer sin egen matrise med ordren til riktig heis.
-      4: Heisen sender ordren til alle andre heiser, så alle er oppdatert.
+      3: Heisen sender ordren til alle andre heiser, så alle er oppdatert.
+      4: Heisen oppdaterer sin egen matrise med ordren til riktig heis.
       5: Den heisen som får jobben, trigger sin egen FSM med        NewLocalOrderChan <- int(newGlobalOrder.Floor)
       6: Heisen som har utført et oppdrag fjerner først fra egen matrise, før den oppdaterer de andre.
       */
 
-    // Case triggered by local button
+    // -----------------------------------------------------------------------------------------------------Case triggered by local button
     case newGlobalOrder := <- NewGlobalOrderChan:
+
       // Costfunction(elevatorMatrix)
 
-
-
-
-
-
-
-
-
-      // Update matrix
-      addOrder(elevatorConfig.ElevID, elevatorMatrix, newGlobalOrder)
-
-      // Send to network
-      message.ID = 2
+      // Send new_order to everyone
+      message.Select = 1
+      message.ID = elevatorConfig.ElevID // ELEV-ID TO DEDICATED ELEVATOR
       message.Floor = newGlobalOrder.Floor
       message.Button = newGlobalOrder.Button
-      MessageToSend <- message
+      OutGoingMsg <- message
 
+      // Wait for everyone to agree
 
-      // if own elevator send to newLocalOrder
-      NewLocalOrderChan <- int(newGlobalOrder.Floor)
+      //  Update local matrix, addOrder
+      addOrder(elevatorConfig.ElevID, elevatorMatrix, newGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
       setLight(newGlobalOrder)
-    //case UpdateElevator := <- UpdateElevatorChan:
 
+      // if costfunction gives local elevator order:
+      NewLocalOrderChan <- int(newGlobalOrder.Floor)
+
+    // -----------------------------------------------------------------------------------------------------Case triggered by elevator done with order
     case LocalOrderFinished := <- OrderManagerChans.LocalOrderFinishedChan:
+
+      // Select = 2 for order done
+      message.Done = true
+      message.Select = 2
+      message.ID = elevatorConfig.ElevID
+      message.Floor = LocalOrderFinished
+
+      // Send message for order done
+      OutGoingMsg <- message
+
+      // Wait for everyone to agree
+
+      // Clear local matrix and lights
       clearFloors(LocalOrderFinished, elevatorMatrix, elevatorConfig.ElevID)
       clearLight(LocalOrderFinished)
+
+      // Print updated matrix
       utilities.PrintMatrix(elevatorMatrix,4,3)
 
-    case newNetworkOrder := <- MessageRecieved:
-      localOrder.Floor = newNetworkOrder.Floor
-      localOrder.Button = newNetworkOrder.Button
-      addOrder(newNetworkOrder.ID, elevatorMatrix, localOrder)
+
+
+
+
+
+
+
+
+      //fmt.Println("-----")
+      //fmt.Println(newGlobalOrder)
+      //fmt.Println("-----")
+
+
+    //case UpdateElevator := <- UpdateElevatorChan:
+
+
+
+
+
+//    case newNetworkOrder := <- MessageRecieved:
+//      localOrder.Floor = newNetworkOrder.Floor
+//      localOrder.Button = newNetworkOrder.Button
+//      addOrder(newNetworkOrder.ID, elevatorMatrix, localOrder)
 
 
 
@@ -99,12 +128,8 @@ func addOrder(id int, matrix [][]int, buttonPressed ButtonEvent) [][]int{
 
 
 func clearFloors(currentFloor int, elevatorMatrix [][]int, id int) {
-	for button:=0; button < NumFloors; button++ {
-<<<<<<< HEAD
-		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators-1] = 0
-=======
-		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*(NumElevators-1)] = 0
->>>>>>> 4cd99c6acb836cc1fc6c46ea7e962d0106ccedcd
+	for button:=0; button < NumElevators; button++ {
+		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators] = 0
 	}
 }
 

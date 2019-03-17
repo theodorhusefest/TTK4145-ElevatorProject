@@ -40,10 +40,9 @@ func main() {
     LocalOrderFinishedChan: make(chan int),
   }
   SyncElevatorChans := syncElevator.SyncElevatorChannels{
-    OutGoingOrder: make(chan Message),
-    MessageToSend: make(chan Message),
-    InComingOrder: make(chan Message),
-    MessageRecieved: make(chan Message),
+    OutGoingMsg: make(chan Message),
+    InCommingMsg: make(chan Message),
+    ChangeInOrder: make(chan Message),
     PeerUpdate: make(chan peers.PeerUpdate),
     TransmitEnable: make(chan bool),
     BroadcastTicker: make(chan bool),
@@ -67,7 +66,7 @@ func main() {
 
   // OrderManager goroutines
   go io.PollButtons(NewGlobalOrderChan)
-  go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix, SyncElevatorChans.OutGoingOrder, SyncElevatorChans.MessageToSend, SyncElevatorChans.MessageRecieved, elevConfig)
+  go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix, SyncElevatorChans.OutGoingMsg, SyncElevatorChans.ChangeInOrder, elevConfig)
 
 
   //Sync
@@ -78,8 +77,8 @@ func main() {
   go peers.Receiver(15789, SyncElevatorChans.PeerUpdate)
 
   //Send/recieve orders
-  go bcast.Transmitter(15790, SyncElevatorChans.OutGoingOrder)
-  go bcast.Receiver(15790, SyncElevatorChans.InComingOrder)
+  go bcast.Transmitter(15790, SyncElevatorChans.OutGoingMsg)
+  go bcast.Receiver(15790, SyncElevatorChans.InCommingMsg)
 
 
 
