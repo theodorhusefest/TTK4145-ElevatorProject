@@ -6,6 +6,12 @@ const (
   ElevID = 0
 )
 
+type ElevConfig struct{
+  NumFloors int
+  NumElevators int
+  ElevID int
+}
+
 type MotorDirection int
 
 const (

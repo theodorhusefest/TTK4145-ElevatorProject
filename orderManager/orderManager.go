@@ -4,6 +4,8 @@ import(
   . "../Config"
   "../Utilities"
   "../IO"
+  "../Config"
+  //"fmt"
 )
 
 /*
@@ -25,7 +27,7 @@ type OrderManagerChannels struct{
 }
 
 
-func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,  elevatorMatrix [][]int, OutGoingOrder chan Message, MessageToSend chan Message, MessageRecieved chan Message) {
+func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,  elevatorMatrix [][]int, OutGoingOrder chan Message, MessageToSend chan Message, MessageRecieved chan Message, elevatorConfig config.ElevConfig) {
   message := Message{
   }
   localOrder := ButtonEvent{
@@ -38,7 +40,8 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
 
       // Update matrix
-      addOrder(0, elevatorMatrix, newGlobalOrder)
+      addOrder(elevatorConfig.ElevID, elevatorMatrix, newGlobalOrder)
+
       // Send to network
       message.ID = 1
       message.Floor = newGlobalOrder.Floor
@@ -52,7 +55,7 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
     //case UpdateElevator := <- UpdateElevatorChan:
 
     case LocalOrderFinished := <- OrderManagerChans.LocalOrderFinishedChan:
-      clearFloors(LocalOrderFinished, elevatorMatrix)
+      clearFloors(LocalOrderFinished, elevatorMatrix, elevatorConfig.ElevID)
       clearLight(LocalOrderFinished)
       utilities.PrintMatrix(elevatorMatrix,4,3)
 
@@ -73,15 +76,15 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
 
 
-func addOrder(elevID int, matrix [][]int, buttonPressed ButtonEvent) [][]int{
-  matrix[7-buttonPressed.Floor][elevID*NumFloors + int(buttonPressed.Button)] = 1
+func addOrder(id int, matrix [][]int, buttonPressed ButtonEvent) [][]int{
+  matrix[NumFloors+3-buttonPressed.Floor][id*NumElevators + int(buttonPressed.Button)] = 1
   return matrix
 }
 
 
-func clearFloors(currentFloor int, elevatorMatrix [][]int) {
-	for button:=0; button < 4; button++ {
-		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+ElevID*NumElevators] = 0
+func clearFloors(currentFloor int, elevatorMatrix [][]int, id int) {
+	for button:=0; button < NumFloors; button++ {
+		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators] = 0
 	}
 }
 

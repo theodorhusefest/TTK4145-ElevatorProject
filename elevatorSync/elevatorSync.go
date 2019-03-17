@@ -2,7 +2,7 @@ package syncElevator
 
 import (
   "fmt"
-//  "time"
+  //"time"
   "../Network/network/peers"
   "../Config"
 )
@@ -19,7 +19,7 @@ type SyncElevatorChannels struct{
   BroadcastTicker chan bool
 }
 
-func SyncElevator(syncChans SyncElevatorChannels){
+func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConfig){
 //  broadcastTicker(syncChans)
   message := config.Message{
   }
@@ -45,6 +45,7 @@ func SyncElevator(syncChans SyncElevatorChannels){
     //Update peers
     case peer := <- syncChans.PeerUpdate:
       fmt.Println(peer.Peers)
+      //orderManager.addOrder(elevatorConfig,peer.Peers[string(elevatorConfig.ElevID)],)
     }
 /*
     select{
