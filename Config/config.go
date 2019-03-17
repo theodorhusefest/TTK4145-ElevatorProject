@@ -43,7 +43,9 @@ type Elevator struct{
 }
 
 type Message struct {
-  // new order [3]int     [floor, button, value]
+  ID int
+  Floor int
+  Button ButtonType
   // Order complete
   //  Acknowledge
 

@@ -2,16 +2,18 @@ package syncElevator
 
 import (
   "fmt"
-  "time"
+//  "time"
   "../Network/network/peers"
-//  "../Config"
+  "../Config"
 )
 
 
 
 type SyncElevatorChannels struct{
-//  OutGoingOrder chan ??
-//  InComingOrder chan ??
+  OutGoingOrder chan config.Message
+  MessageToSend chan config.Message
+  InComingOrder chan config.Message
+  MessageRecieved chan config.Message
   PeerUpdate chan peers.PeerUpdate
   TransmitEnable chan bool
   BroadcastTicker chan bool
@@ -19,13 +21,28 @@ type SyncElevatorChannels struct{
 
 func SyncElevator(syncChans SyncElevatorChannels){
 //  broadcastTicker(syncChans)
+  message := config.Message{
+  }
 
-  broadCastTicker := time.NewTicker(500 * time.Millisecond)
+//  broadCastTicker := time.NewTicker(500 * time.Millisecond)
 
   for{
     select {
-    case <- broadCastTicker.C:
-      fmt.Println("hei")
+    //Transmit message from orderManager
+    case msg := <- syncChans.MessageToSend:
+      message.ID = msg.ID
+      message.Floor = msg.Floor
+      message.Button = msg.Button
+      syncChans.OutGoingOrder <- message
+
+    case msg := <- syncChans.InComingOrder:
+      message.ID = msg.ID
+      message.Floor = msg.Floor
+      message.Button = msg.Button
+      syncChans.MessageRecieved <- message
+
+
+    //Update peers
     case peer := <- syncChans.PeerUpdate:
       fmt.Println(peer.Peers)
     }

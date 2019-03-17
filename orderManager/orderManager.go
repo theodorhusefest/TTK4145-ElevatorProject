@@ -25,7 +25,11 @@ type OrderManagerChannels struct{
 }
 
 
-func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,  elevatorMatrix [][]int) {
+func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,  elevatorMatrix [][]int, OutGoingOrder chan Message, MessageToSend chan Message, MessageRecieved chan Message) {
+  message := Message{
+  }
+  localOrder := ButtonEvent{
+  }
   for {
     select {
     case newGlobalOrder := <- NewGlobalOrderChan:
@@ -33,13 +37,13 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
       // Costfunction(elevatorMatrix)
 
 
-
       // Update matrix
       addOrder(0, elevatorMatrix, newGlobalOrder)
-
       // Send to network
-
-
+      message.ID = 1
+      message.Floor = newGlobalOrder.Floor
+      message.Button = newGlobalOrder.Button
+      MessageToSend <- message
 
 
       // if own elevator send to newLocalOrder
@@ -52,7 +56,10 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
       clearLight(LocalOrderFinished)
       utilities.PrintMatrix(elevatorMatrix,4,3)
 
-    // case newNetworkOrder
+    case newNetworkOrder := <- MessageRecieved:
+      localOrder.Floor = newNetworkOrder.Floor
+      localOrder.Button = newNetworkOrder.Button
+      addOrder(newNetworkOrder.ID, elevatorMatrix, localOrder)
 
 
 
