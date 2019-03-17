@@ -13,18 +13,21 @@ type SyncElevatorChannels struct{
 //  OutGoingOrder chan ??
 //  InComingOrder chan ??
   PeerUpdate chan peers.PeerUpdate
+  TransmitEnable chan bool
   BroadcastTicker chan bool
 }
 
 func SyncElevator(syncChans SyncElevatorChannels){
 //  broadcastTicker(syncChans)
 
-  ticker := time.NewTicker(50 * time.Millisecond)
+  broadCastTicker := time.NewTicker(500 * time.Millisecond)
 
   for{
     select {
-    case <- ticker.C:
+    case <- broadCastTicker.C:
       fmt.Println("hei")
+    case peer := <- syncChans.PeerUpdate:
+      fmt.Println(peer.Peers)
     }
 /*
     select{

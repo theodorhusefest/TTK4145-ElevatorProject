@@ -29,10 +29,11 @@ func main() {
     UpdateElevatorChan: make(chan Elevator),
     LocalOrderFinishedChan: make(chan int),
   }
-  syncElevatorChans := syncElevator.SyncElevatorChannels{
+  SyncElevatorChans := syncElevator.SyncElevatorChannels{
   //  OutGoingOrder: make(chan ??)
     //InComingOrder: make(chan ??)
     PeerUpdate: make(chan peers.PeerUpdate),
+    TransmitEnable: make(chan bool),
     BroadcastTicker: make(chan bool),
   }
   var (
@@ -56,7 +57,14 @@ func main() {
   go io.PollButtons(NewGlobalOrderChan)
   go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix)
 
-  go syncElevator.SyncElevator(syncElevatorChans)
+
+  //Sync
+  go syncElevator.SyncElevator(SyncElevatorChans)
+  go peers.Transmitter(15789, string("Heis0"), SyncElevatorChans.TransmitEnable)
+  go peers.Transmitter(15789, string("Heis1"), SyncElevatorChans.TransmitEnable)
+  go peers.Receiver(15789, SyncElevatorChans.PeerUpdate)
+
+
 
   time.Sleep(10*time.Second)
   utilities.PrintMatrix(elevatorMatrix, NumFloors, NumElevators)
