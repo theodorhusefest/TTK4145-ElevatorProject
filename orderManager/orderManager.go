@@ -43,7 +43,7 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
       addOrder(elevatorConfig.ElevID, elevatorMatrix, newGlobalOrder)
 
       // Send to network
-      message.ID = 1
+      message.ID = 2
       message.Floor = newGlobalOrder.Floor
       message.Button = newGlobalOrder.Button
       MessageToSend <- message
@@ -84,7 +84,7 @@ func addOrder(id int, matrix [][]int, buttonPressed ButtonEvent) [][]int{
 
 func clearFloors(currentFloor int, elevatorMatrix [][]int, id int) {
 	for button:=0; button < NumFloors; button++ {
-		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators] = 0
+		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*(NumElevators-1)] = 0
 	}
 }
 

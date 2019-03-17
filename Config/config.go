@@ -3,7 +3,7 @@ package config
 const (
   NumFloors = 4
   NumElevators = 3
-  ElevID = 0
+//  ElevID = 0
 )
 
 type ElevConfig struct{
