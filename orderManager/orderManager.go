@@ -119,6 +119,7 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
         // SELECT = 2: AN ORDER IS FINISHED
         if message.Select == 2 {
           clearFloors(message.Floor, elevatorMatrix, message.ID)
+          clearLight(message.Floor)
         }
         // SELECT = 3: NEW CHANGE IN STATE/FLOOR/DIR FOR AN ELEVATOR
         if message.Select == 3 {
@@ -182,7 +183,7 @@ func setLight(illuminateOrder Message, elevatorConfig config.ElevConfig) {
   if illuminateOrder.ID == elevatorConfig.ElevID {
     io.SetButtonLamp(illuminateOrder.Button, illuminateOrder.Floor, true)
   } else if int(illuminateOrder.Button) == 2 {
-    
+
   } else {
     io.SetButtonLamp(illuminateOrder.Button, illuminateOrder.Floor, true)
   }
