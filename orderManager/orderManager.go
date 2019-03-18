@@ -119,6 +119,7 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
         // SELECT = 2: AN ORDER IS FINISHED
         if message.Select == 2 {
           clearFloors(message.Floor, elevatorMatrix, message.ID)
+          clearLight(message.Floor)
         }
         // SELECT = 3: NEW CHANGE IN STATE/FLOOR/DIR FOR AN ELEVATOR
         if message.Select == 3 {
