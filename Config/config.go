@@ -62,8 +62,10 @@ type Message struct {
   Floor int
   Button ButtonType
 
-  // Select = 3: ACKNOWLEDGE
+  // Select = 3: UPDATE STATE/FLOOR/DIR TO A GIVEN ELEVATOR
+  State int
+  Dir MotorDirection
+
+  // Select = 4: ACKNOWLEDGE
   Ack bool
-
-
 }

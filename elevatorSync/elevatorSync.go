@@ -26,7 +26,7 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConf
   message := config.Message{
   }
 
-  broadCastTicker := time.NewTicker(4000 * time.Millisecond)
+  broadCastTicker := time.NewTicker(100 * time.Millisecond)
 
   for{
     select {
@@ -34,7 +34,7 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConf
     case <- broadCastTicker.C:
       if online {
         syncChans.OutGoingMsg <- message
-        fmt.Println(message)
+//        fmt.Println(message)
       }
 
 
@@ -66,73 +66,33 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConf
           // Sett info inn på message
         }
 
+      // Wait to everyone agree
 
-      // Send message to ordermanager
+      // Send message to local ordermanager
       UpdateElevatorChan <- message
       message.Done = true
       }
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //Transmit message from orderManager
-
-
-    //Update peers
+    // --------------------------------------------------------------------------Case triggered by update in peers
     case peer := <- syncChans.PeerUpdate:
+    //Update peers
+    //Check how many peers are connected
+    //If only you, start singelmode ???????????????????
+
       if (len(peer.Peers) == 0) {
-        fmt.Println("I am offline")
+        fmt.Println("I'm offline")
         online = false
       } else {
-        fmt.Println("I am online")
+        fmt.Println("I'm online")
         online = true
       }
       fmt.Println(peer.Peers)
-      //orderManager.addOrder(elevatorConfig,peer.Peers[string(elevatorConfig.ElevID)],)
-    }
-/*
-    select{
 
-    //New local order, insert into msg for transmitting
-    case newOrderRecieved := <-:
-      fmt.Println("newlocalorder"+ newLocalOrder)
+      // ????????????    orderManager.addOrder(elevatorConfig,peer.Peers[string(elevatorConfig.ElevID)],)     ?????????????????????
 
-
-
-
-    //If elevator online, send msg on channel for BCAST-transmitter
-    case <-syncChans.broadcastTicker:
-      fmt.Println("broadcastticker")
-
-
-
-
-
-
-    //BCAST-reciever recieve new message
-    case msg := <-NewOrderRecieved:
-      fmt.Println("incomingOrder")
-
-
-    //Check how many peers are connected
-    case peer <- PeerUpdate:
-    //If only you, start singelmode
 
     }
-
-*/
   }
 }
