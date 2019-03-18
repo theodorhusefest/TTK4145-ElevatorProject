@@ -2,10 +2,10 @@ package orderManager
 
 import(
   . "../Config"
-  "../Utilities"
+//  "../Utilities"
   "../IO"
   "../Config"
-//  "fmt"
+  "fmt"
 )
 
 /*
@@ -39,9 +39,10 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
       1: Ordre tas imot av en heis.
       2: Den heisen kjører kostfunksjon og bestemmer hvem som får jobben.
       3: Heisen sender ordren til alle andre heiser, så alle er oppdatert.
-      4: Heisen oppdaterer sin egen matrise med ordren til riktig heis.
+      4: Alle skrur
       5: Den heisen som får jobben, trigger sin egen FSM med        NewLocalOrderChan <- int(newGlobalOrder.Floor)
-      6: Heisen som har utført et oppdrag fjerner først fra egen matrise, før den oppdaterer de andre.
+      6: Heisen som har utført et oppdrag oppdaterer de andre, så alle vet det samme
+      7: Alle fjerner ordren lokalt og evt. skrur av lys
       */
 
     // -----------------------------------------------------------------------------------------------------Case triggered by local button
@@ -49,7 +50,7 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
       // Costfunction(elevatorMatrix)
 
-      // ???       Send new_order to everyonerderManager.InsertState(elevatorConfig.ElevID, 0, elevatorMa     ????
+      // ???????????????????       Send new_order to everyonerderManager.InsertState(elevatorConfig.ElevID, 0, elevatorMa     ????
 
       // Update message to be sent to everyone. Select = 1 for new order
       message.Select = 1
@@ -65,13 +66,13 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
       //  Update local matrix, addOrder
       addOrder(elevatorConfig.ElevID, elevatorMatrix, newGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
-      setLight(newGlobalOrder)
+      setLight(message, elevatorConfig)
 
       // if costfunction gives local elevator the order:
       NewLocalOrderChan <- int(newGlobalOrder.Floor)
 
       // Print updated matrix for fun
-      //utilities.PrintMatrix(elevatorMatrix,4,3)
+      utilities.PrintMatrix(elevatorMatrix,4,3)
 
 
 
@@ -93,7 +94,6 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
       clearFloors(LocalOrderFinished, elevatorMatrix, elevatorConfig.ElevID)
       clearLight(LocalOrderFinished)
 
-
       // Print updated matrix for fun
       utilities.PrintMatrix(elevatorMatrix,4,3)
 
@@ -103,59 +103,31 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
   case newUpdateFromSync := <- OrderManagerChans.UpdateElevatorChan:
       message = newUpdateFromSync
       if !message.Done {
+        //SELECT = 1: NEW ORDER
         if message.Select == 1 {
           //NEW ORDER
           localOrder.Floor = message.Floor
           localOrder.Button = message.Button
           addOrder(message.ID, elevatorMatrix, localOrder)
+          setLight(message, elevatorConfig)
+
+
           if message.ID == elevatorConfig.ElevID {
             //THIS ELEVATOR GOT THE JOB, TRIGGER FSM
           }
         }
+        // SELECT = 2: AN ORDER IS FINISHED
         if message.Select == 2 {
           clearFloors(message.Floor, elevatorMatrix, message.ID)
         }
+        // SELECT = 3: NEW CHANGE IN STATE/FLOOR/DIR FOR AN ELEVATOR
+        if message.Select == 3 {
+          InsertState(message.ID, message.State, elevatorMatrix)
+          // FIKS!!!!!!!!!  InsertDirection(message.ID, message.Dir, elevatorMatrix)
+          // LAG FUNKSJON SOM SETTER INN FLOOR ????????????
+        }
+      message.Done = true
       }
-
-
-
-
-
-
-
-
-
-//    case UpdateElevator := <- UpdateElevatorChan:
-
-
-
-//    case newGlobalOrder := <- NewGlobalOrderChan:
-//      newGlobalOrder.Floor = 1
-
-
-      // Wait for everyone to agree
-
-
-
-
-
-
-
-
-      //fmt.Println("-----")
-      //fmt.Println(newGlobalOrder)
-      //fmt.Println("-----")
-
-
-
-
-
-
-
-//    case newNetworkOrder := <- MessageRecieved:
-//      localOrder.Floor = newNetworkOrder.Floor
-//      localOrder.Button = newNetworkOrder.Button
-//      addOrder(newNetworkOrder.ID, elevatorMatrix, localOrder)
 
 
 
@@ -163,6 +135,11 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
     }
   }
 }
+
+
+
+
+
 
 
 
@@ -187,17 +164,30 @@ func InsertDirection(id int, elevator config.Elevator, matrix [][]int){
     case DIR_Up:
       matrix[3][3*id] = 1
     case DIR_Down:
-      matrix[3][3*id] = 2
+      matrix[3][3*id] = -1
     case DIR_Stop:
       matrix[3][3*id] = 0
   }
 }
 
 
+/*
 func setLight(newGlobalOrder ButtonEvent) {
   //Set button lamp
   io.SetButtonLamp(newGlobalOrder.Button, newGlobalOrder.Floor, true)
 }
+*/
+
+func setLight(illuminateOrder Message, elevatorConfig config.ElevConfig) {
+  if illuminateOrder.ID == elevatorConfig.ElevID {
+    io.SetButtonLamp(illuminateOrder.Button, illuminateOrder.Floor, true)
+  } else if int(illuminateOrder.Button) == 2 {
+
+  } else {
+    io.SetButtonLamp(illuminateOrder.Button, illuminateOrder.Floor, true)
+  }
+}
+
 
 func clearLight(LocalOrderFinished int) {
 	io.SetButtonLamp(BT_Cab, LocalOrderFinished, false)

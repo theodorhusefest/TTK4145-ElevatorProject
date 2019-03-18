@@ -1,10 +1,10 @@
 package main
 
 import (
-//"fmt"
+//  "fmt"
   . "./Config"
   "./Initialize"
-  "./Utilities"
+//  "./Utilities"
   "./orderManager"
   "./IO"
   "./FSM"
@@ -17,28 +17,26 @@ import (
 )
 
 
-
-
 func main() {
 
+  // Initialize
+  // !!!!!!!!!!!!!! Skru av alle lys, initialiser matrisen til antall input
   elevatorMatrix, elevConfig := initialize.Initialize()
-
-
-
 
   io.Init("localhost:15657",4)
 
-
-
+  // Channels for FSM
   FSMchans := FSM.FSMchannels{
     NewLocalOrderChan: make(chan int),
     ArrivedAtFloorChan: make(chan int),
     DoorTimeoutChan:  make(chan bool),
   }
+  // Channels for OrderManager
   OrderManagerchans := orderManager.OrderManagerChannels{
     UpdateElevatorChan: make(chan Message),
     LocalOrderFinishedChan: make(chan int),
   }
+  // Channels for SyncElevator
   SyncElevatorChans := syncElevator.SyncElevatorChannels{
     OutGoingMsg: make(chan Message),
     InCommingMsg: make(chan Message),
@@ -54,56 +52,29 @@ func main() {
   channelFloor := make(chan int) //channel that is used in InitElevator. Should maybe have a struct with channels?
   //elevatorMatrix := initialize.InitializeMatrix(NumFloors,NumElevators)  // Set up matrix, add ID
   initialize.InitElevator(elevConfig,elevatorMatrix,channelFloor)  // Move elevator to nearest floor and update matrix
-  utilities.PrintMatrix(elevatorMatrix, elevConfig.NumFloors,elevConfig.NumElevators)
+//  utilities.PrintMatrix(elevatorMatrix, elevConfig.NumFloors,elevConfig.NumElevators)
 
-
-
-
-
-  // FSM goroutines
+  // Goroutines used in FSM
   go io.PollFloorSensor(FSMchans.ArrivedAtFloorChan)
   go FSM.StateMachine(FSMchans, OrderManagerchans.LocalOrderFinishedChan, elevatorMatrix,elevConfig)
 
-  // OrderManager goroutines
+  // Goroutines used in OrderManager
   go io.PollButtons(NewGlobalOrderChan)
   go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix, SyncElevatorChans.OutGoingMsg, SyncElevatorChans.ChangeInOrderch, elevConfig)
 
-
-  //Sync
+  // Goroutines used in SyncElevator
   go syncElevator.SyncElevator(SyncElevatorChans, elevConfig, OrderManagerchans.UpdateElevatorChan)
 
-  //Update peers
+  // Goroutines used in Network/Peers
   go peers.Transmitter(15789, strconv.Itoa(elevConfig.ElevID), SyncElevatorChans.TransmitEnable)
   go peers.Receiver(15789, SyncElevatorChans.PeerUpdate)
 
-  //Send/recieve orders
+  //  Goroutines used in Network/Bcast
   go bcast.Transmitter(15790, SyncElevatorChans.OutGoingMsg)
   go bcast.Receiver(15790, SyncElevatorChans.InCommingMsg)
 
 
-
-
-
-
-
   time.Sleep(10*time.Second)
-  utilities.PrintMatrix(elevatorMatrix, NumFloors, NumElevators)
 
-  //initialize network module
-
-/*
-  for {
-    select {
-    case buttonPressed := <- buttonChn:
-      elevatorMatrix = orderManager.AddOrder(0, elevatorMatrix, buttonPressed)
-      utilities.PrintMatrix(elevatorMatrix,NumFloors,NumElevators)
-
-    case floor := <- floorChn:
-      fmt.Println(floor)
-
-
-    }
-  }
-*/
   select{}
 }
