@@ -53,14 +53,14 @@ type Elevator struct{
 type Message struct {
   // Select different cases of message based on value
   Select int
+  // Message.Done = true: Message has been processed
+  Done bool
 
   // Select = 1: NEW ORDER
+  // Select = 2: AN ORDER HAS BEEN DONE
   ID int
   Floor int
   Button ButtonType
-
-  // Select = 2: ORDER DONE
-  Done bool
 
   // Select = 3: ACKNOWLEDGE
   Ack bool

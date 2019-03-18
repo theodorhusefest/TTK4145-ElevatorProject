@@ -36,13 +36,13 @@ func main() {
     DoorTimeoutChan:  make(chan bool),
   }
   OrderManagerchans := orderManager.OrderManagerChannels{
-    UpdateElevatorChan: make(chan Elevator),
+    UpdateElevatorChan: make(chan Message),
     LocalOrderFinishedChan: make(chan int),
   }
   SyncElevatorChans := syncElevator.SyncElevatorChannels{
     OutGoingMsg: make(chan Message),
     InCommingMsg: make(chan Message),
-    ChangeInOrder: make(chan Message),
+    ChangeInOrderch: make(chan Message),
     PeerUpdate: make(chan peers.PeerUpdate),
     TransmitEnable: make(chan bool),
     BroadcastTicker: make(chan bool),
@@ -66,11 +66,11 @@ func main() {
 
   // OrderManager goroutines
   go io.PollButtons(NewGlobalOrderChan)
-  go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix, SyncElevatorChans.OutGoingMsg, SyncElevatorChans.ChangeInOrder, elevConfig)
+  go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix, SyncElevatorChans.OutGoingMsg, SyncElevatorChans.ChangeInOrderch, elevConfig)
 
 
   //Sync
-  go syncElevator.SyncElevator(SyncElevatorChans, elevConfig)
+  go syncElevator.SyncElevator(SyncElevatorChans, elevConfig, OrderManagerchans.UpdateElevatorChan)
 
   //Update peers
   go peers.Transmitter(15789, strconv.Itoa(elevConfig.ElevID), SyncElevatorChans.TransmitEnable)

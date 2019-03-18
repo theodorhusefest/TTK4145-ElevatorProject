@@ -2,7 +2,7 @@ package orderManager
 
 import(
   . "../Config"
-  "../Utilities"
+//  "../Utilities"
   "../IO"
   "../Config"
 //  "fmt"
@@ -22,19 +22,19 @@ Matrix  ID_1        -----------   -----     ID_2        -----------   -----     
 
 
 type OrderManagerChannels struct{
-  UpdateElevatorChan chan Elevator
+  UpdateElevatorChan chan Message
   LocalOrderFinishedChan chan int
 }
 
 
-func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,  elevatorMatrix [][]int, OutGoingMsg chan Message, ChangeInOrder chan Message, elevatorConfig config.ElevConfig) {
+func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,  elevatorMatrix [][]int, OutGoingMsg chan Message, ChangeInOrderch chan Message, elevatorConfig config.ElevConfig) {
   message := Message{
   }
-//  localOrder := ButtonEvent{
-//  }
+  localOrder := ButtonEvent{
+  }
   for {
     select {
-<<<<<<< HEAD
+
       /*
       1: Ordre tas imot av en heis.
       2: Den heisen kjører kostfunksjon og bestemmer hvem som får jobben.
@@ -49,48 +49,91 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
       // Costfunction(elevatorMatrix)
 
-      // Send new_order to everyone
+      // ???       Send new_order to everyonerderManager.InsertState(elevatorConfig.ElevID, 0, elevatorMa     ????
+
+      // Update message to be sent to everyone. Select = 1 for new order
       message.Select = 1
+      message.Done = false
       message.ID = elevatorConfig.ElevID // ELEV-ID TO DEDICATED ELEVATOR
       message.Floor = newGlobalOrder.Floor
       message.Button = newGlobalOrder.Button
-      OutGoingMsg <- message
 
-      // Wait for everyone to agree
+      // Send message to sync
+      ChangeInOrderch <- message
+
+      // Wait for sync to say everyone knows the same
 
       //  Update local matrix, addOrder
       addOrder(elevatorConfig.ElevID, elevatorMatrix, newGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
       setLight(newGlobalOrder)
 
-      // if costfunction gives local elevator order:
+      // if costfunction gives local elevator the order:
       NewLocalOrderChan <- int(newGlobalOrder.Floor)
+
+      // Print updated matrix for fun
+      //utilities.PrintMatrix(elevatorMatrix,4,3)
+
+
 
     // -----------------------------------------------------------------------------------------------------Case triggered by elevator done with order
     case LocalOrderFinished := <- OrderManagerChans.LocalOrderFinishedChan:
 
-      // Select = 2 for order done
-      message.Done = true
+      // Update message to be sent to everyone. Select = 2 for order done
       message.Select = 2
+      message.Done = false
       message.ID = elevatorConfig.ElevID
       message.Floor = LocalOrderFinished
 
-      // Send message for order done
-      OutGoingMsg <- message
-=======
-    case newGlobalOrder := <- NewGlobalOrderChan:
+      // Send message to sync
+      ChangeInOrderch <- message
 
-      // Costfunction(elevatorMatrix)
->>>>>>> 4e776ed6fc341eec8e9b585f45097d102286d199
-
-      // Wait for everyone to agree
+      // Wait for sync to say everyone knows the same
 
       // Clear local matrix and lights
       clearFloors(LocalOrderFinished, elevatorMatrix, elevatorConfig.ElevID)
       clearLight(LocalOrderFinished)
 
-      // Print updated matrix
+
+      // Print updated matrix for fun
       utilities.PrintMatrix(elevatorMatrix,4,3)
 
+
+
+    // -------------------------------------------------------------------------------------------------------Case triggered by incomming update (New_order, order_done etc.)
+  case newUpdateFromSync := <- OrderManagerChans.UpdateElevatorChan:
+      message = newUpdateFromSync
+      if !message.Done {
+        if message.Select == 1 {
+          //NEW ORDER
+          localOrder.Floor = message.Floor
+          localOrder.Button = message.Button
+          addOrder(message.ID, elevatorMatrix, localOrder)
+          if message.ID == elevatorConfig.ElevID {
+            //THIS ELEVATOR GOT THE JOB, TRIGGER FSM
+          }
+        }
+        if message.Select == 2 {
+          clearFloors(message.Floor, elevatorMatrix, message.ID)
+        }
+      }
+
+
+
+
+
+
+
+
+
+//    case UpdateElevator := <- UpdateElevatorChan:
+
+
+
+//    case newGlobalOrder := <- NewGlobalOrderChan:
+//      newGlobalOrder.Floor = 1
+
+
+      // Wait for everyone to agree
 
 
 
@@ -104,7 +147,6 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
       //fmt.Println("-----")
 
 
-    //case UpdateElevator := <- UpdateElevatorChan:
 
 
 
@@ -117,8 +159,6 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
 
 
 
-
-    // case orderFinished
 
     }
   }

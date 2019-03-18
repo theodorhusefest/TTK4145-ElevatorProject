@@ -2,7 +2,7 @@ package syncElevator
 
 import (
   "fmt"
-  //"time"
+  "time"
   "../Network/network/peers"
   "../Config"
 )
@@ -12,29 +12,70 @@ import (
 type SyncElevatorChannels struct{
   OutGoingMsg chan config.Message
   InCommingMsg chan config.Message
-  ChangeInOrder chan config.Message
+  ChangeInOrderch chan config.Message
   PeerUpdate chan peers.PeerUpdate
   TransmitEnable chan bool
   BroadcastTicker chan bool
 }
 
-func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConfig){
+func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConfig, UpdateElevatorChan chan config.Message){
+
+  var online bool
+
 //  broadcastTicker(syncChans)
   message := config.Message{
   }
 
-//  broadCastTicker := time.NewTicker(500 * time.Millisecond)
+  broadCastTicker := time.NewTicker(4000 * time.Millisecond)
 
   for{
     select {
-    case ChangeInOrder := <- syncChans.InCommingMsg:
+    // --------------------------------------------------------------------------Case triggered by broadcast-ticker.
+    case <- broadCastTicker.C:
+      if online {
+        syncChans.OutGoingMsg <- message
+        fmt.Println(message)
+      }
 
-    // Check if incomming message is of order-done. If so, remove that order
-    if ChangeInOrder.Done {
-      message.Floor = 1
-    } else if ChangeInOrder.Select == 1 {
-      // ADD ORDER TO LOCAL ELEVATOR VIA NewNetworkOrder channel
-    }
+
+
+    // --------------------------------------------------------------------------Case triggered by local ordermanager, change in order
+    case changeInOrder := <-syncChans.ChangeInOrderch:
+      //Håndter endring som kom fra ordermanager. Send alt inn på message og sett message.Done = false
+      message = changeInOrder
+
+      // Broadcast message
+      syncChans.OutGoingMsg <- message
+
+      // Vent til alle er enige, gi klarsignal til ordermanager ??????
+
+      // Sett message.Done = true
+      message.Done = true
+
+
+
+    // --------------------------------------------------------------------------Case triggered by bcast.Recieving
+    case msgRecieved := <- syncChans.InCommingMsg:
+
+      // Check if message has been processed.
+      if !msgRecieved.Done {
+        message = msgRecieved
+
+        // If select = 1, new order was recieved.
+        if message.Select == 1 {
+          // Sett info inn på message
+        }
+
+
+      // Send message to ordermanager
+      UpdateElevatorChan <- message
+      message.Done = true
+      }
+
+
+
+
+
 
 
 
@@ -52,6 +93,13 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConf
 
     //Update peers
     case peer := <- syncChans.PeerUpdate:
+      if (len(peer.Peers) == 0) {
+        fmt.Println("I am offline")
+        online = false
+      } else {
+        fmt.Println("I am online")
+        online = true
+      }
       fmt.Println(peer.Peers)
       //orderManager.addOrder(elevatorConfig,peer.Peers[string(elevatorConfig.ElevID)],)
     }
