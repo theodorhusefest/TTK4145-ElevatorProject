@@ -75,9 +75,9 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Messa
 			} else {
 				onlineElev.Behaviour = "doorOpen"
 			}
-			ID_str := strconv.Itoa(elevatorMatrix[0][elev*NumElevators])
+			IDstr := strconv.Itoa(elevatorMatrix[0][elev*NumElevators])
 
-			OrderInput.States[ID_str] = &onlineElev
+			OrderInput.States[IDstr] = &onlineElev
 		}
 	}
 
@@ -89,21 +89,24 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Messa
 		var assignedOrders map[string][][]bool
 		json.Unmarshal(result, &assignedOrders)
 
-		fmt.Println("Assigned Orders", assignedOrders)
 
+	for ElevID, orders := range assignedOrders {
+		ElevIDint, _ := strconv.Atoi(ElevID)
 		for floor := 0; floor < NumFloors; floor++ {
 			for button := 0; button < 2; button++ {
-				for elev := 0; elev < len(assignedOrders); elev++ {
-					if assignedOrders[strconv.Itoa(elev)][floor][button] == true && elevatorMatrix[len(elevatorMatrix)-floor-1][button+elev*NumElevators] == 0 {
-						update := Message{ID: elev, Floor: floor, Button: ButtonType(button)}
-						updatedOrders = append(updatedOrders, update)
-					}
+				if orders[floor][button] == true && elevatorMatrix[len(elevatorMatrix)-floor-1][button + ElevIDint*NumElevators] == 1 {
+					newOrder := Message{Select: 1, ID: ElevIDint, Floor: floor, Button: ButtonType(button)}
+					updatedOrders = append(updatedOrders, newOrder)
 				}
 			}
 		}
 	}
 
-	
+
+
+		fmt.Println("Assigned Orders: ", assignedOrders)
+	}
+	fmt.Println("Updated Orders: ", updatedOrders)
 	return updatedOrders
 
 }
