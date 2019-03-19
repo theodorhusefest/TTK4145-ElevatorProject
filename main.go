@@ -13,7 +13,7 @@ import (
   "./Network/network/bcast"
   "time"
   "strconv"
-
+  "flag"
 )
 
 
@@ -21,9 +21,17 @@ func main() {
 
   // Initialize
   // !!!!!!!!!!!!!! Skru av alle lys, initialiser matrisen til antall input
-  elevatorMatrix, elevConfig := initialize.Initialize()
+  floorInp := flag.Int("numFloors",4,"an int")
+  elevInp := flag.Int("numElevators",3,"an int")
+  portInp := flag.String("port","15657","a string")
 
-  io.Init("localhost:15657",4)
+  flag.Parse()
+
+
+
+  elevatorMatrix, elevConfig := initialize.Initialize(*floorInp, *elevInp)
+
+  io.Init("localhost:" + (*portInp), NumFloors)
 
   // Channels for FSM
   FSMchans := FSM.FSMchannels{
