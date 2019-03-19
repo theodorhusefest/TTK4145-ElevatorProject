@@ -2,8 +2,6 @@ package initialize
 
 import (
   "fmt"
-  //"../utilities"
-    //"../FSM"
   "../IO"
   . "../Config"
 
@@ -13,12 +11,14 @@ import (
 
 
 //creates a matrix with dimensions floor and elevators
-func InitializeMatrix( floors int, elevators int)[][]int{
-  matrix := make([][]int,4+floors)
-  for i:=0; i< 4+floors;i++{
-    matrix[i] = make([]int,3*elevators)
+func InitializeMatrix(elevID int) [][]int {
+  matrix := make([][]int, 4+NumFloors)
+  for i:=0; i < 4+NumFloors; i++{
+    matrix[i] = make([]int, 3*NumElevators)
   }
-
+  for i := 0; i < NumElevators; i++ {
+    matrix[1][0 + 3*i] = 3 // Set all elevators to offline
+  }
   return matrix
 }
 
@@ -50,8 +50,9 @@ func Initialize(numFloors int, numElevators int) ([][]int, ElevConfig){
   //conf.ElevID = inp
   conf := ElevConfig{NumFloors:numFloors,NumElevators:numElevators,ElevID:inp}
 
-  elevatorMatrix := InitializeMatrix(conf.NumFloors,conf.NumElevators)
+  elevatorMatrix := InitializeMatrix(conf.ElevID)
   elevatorMatrix[0][3*conf.ElevID] = conf.ElevID
+  elevatorMatrix[1][3*conf.ElevID] = 1                // Set state to Idle
   return elevatorMatrix, conf
 }
 

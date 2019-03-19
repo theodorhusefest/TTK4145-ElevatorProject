@@ -5,7 +5,8 @@ import(
   "../Utilities"
   "../IO"
   "../Config"
-//  "fmt"
+  "../hallRequestAssigner"
+  "fmt"
 )
 
 /*
@@ -46,18 +47,47 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
       */
 
     // -----------------------------------------------------------------------------------------------------Case triggered by local button
-    case newGlobalOrder := <- NewGlobalOrderChan:
+    case NewGlobalOrder := <- NewGlobalOrderChan:
 
-      // Costfunction(elevatorMatrix)
+      switch NewGlobalOrder.Button {
 
+      case BT_Cab:
+
+      // Update message to be sent to everyone. Select = 1 for new order
+      message.Select = 1
+      message.Done = false
+      message.ID = elevatorConfig.ElevID // ELEV-ID TO DEDICATED ELEVATOR
+      message.Floor = NewGlobalOrder.Floor
+      message.Button = NewGlobalOrder.Button
+
+      // Send message to sync
+      ChangeInOrderch <- message
+
+
+      addOrder(elevatorConfig.ElevID, elevatorMatrix, NewGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
+      setLight(message, elevatorConfig)
+
+      // if costfunction gives local elevator the order:
+      NewLocalOrderChan <- int(NewGlobalOrder.Floor)
+
+      // Print updated matrix for fun
+      utilities.PrintMatrix(elevatorMatrix,4,3)
+
+
+      default:
+
+      //var newHallOrders []Message 
+      /*newHallOrders =*/ hallOrderAssigner.AssignHallOrder(NewGlobalOrder, elevatorMatrix)
+      //fmt.Println("New Hall orders", newHallOrders)
+      fmt.Println()
       // ???????????????????       Send new_order to everyonerderManager.InsertState(elevatorConfig.ElevID, 0, elevatorMa     ????
 
       // Update message to be sent to everyone. Select = 1 for new order
       message.Select = 1
       message.Done = false
       message.ID = elevatorConfig.ElevID // ELEV-ID TO DEDICATED ELEVATOR
-      message.Floor = newGlobalOrder.Floor
-      message.Button = newGlobalOrder.Button
+      message.Floor = NewGlobalOrder.Floor
+      message.Button = NewGlobalOrder.Button
 
       // Send message to sync
       ChangeInOrderch <- message
@@ -65,16 +95,16 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
       // Wait for sync to say everyone knows the same
 
       //  Update local matrix, addOrder
-      addOrder(elevatorConfig.ElevID, elevatorMatrix, newGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
+      addOrder(elevatorConfig.ElevID, elevatorMatrix, NewGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
       setLight(message, elevatorConfig)
 
       // if costfunction gives local elevator the order:
-      NewLocalOrderChan <- int(newGlobalOrder.Floor)
+      NewLocalOrderChan <- int(NewGlobalOrder.Floor)
 
       // Print updated matrix for fun
       utilities.PrintMatrix(elevatorMatrix,4,3)
 
-
+    }
 
     // -----------------------------------------------------------------------------------------------------Case triggered by elevator done with order
     case LocalOrderFinished := <- OrderManagerChans.LocalOrderFinishedChan:
