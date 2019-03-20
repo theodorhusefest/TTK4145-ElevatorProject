@@ -29,7 +29,7 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig ElevConfig, Upd
 //  broadcastTicker(syncChans)
 
   broadCastTicker := time.NewTicker(100 * time.Millisecond)
-  online := false
+  //online := false
   for{
     select {
     // --------------------------------------------------------------------------Case triggered by broadcast-ticker.
@@ -51,7 +51,6 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig ElevConfig, Upd
       select {
       case <- broadCastTicker.C:
           syncChans.OutGoingMsg <- changeInOrder
-          fmt.Println("Sending message")
       }
 
 
@@ -86,15 +85,16 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig ElevConfig, Upd
 
     // --------------------------------------------------------------------------Case triggered by update in peers
     case p := <- syncChans.PeerUpdate:
-    if len(p.Peers) == 0 {
+    /*if len(p.Peers) == 0 {
         online = false
-    }
+    }*/
 
 
 
     //Update peers
     //Check how many peers are connected
     //If only you, start singelmode ???????????????????
+    /*
     fmt.Println("Peers: ", p.Peers)
     for _, peersOnline := range p.Peers {
         newID, _ := strconv.Atoi(peersOnline)
@@ -104,7 +104,7 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig ElevConfig, Upd
             elevatorConfig.OnlineList[newID] = true
             fmt.Println("Ask for resend Matrix")
             message := []Message {{Select: 5, ID: newID}}
-            //syncChans.OutGoingMsg <- message
+            syncChans.OutGoingMsg <- message
             fmt.Println(message)
             online = true
         } else if (elevatorConfig.OnlineList[newID] == false) {
@@ -115,11 +115,38 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig ElevConfig, Upd
         newID, _ := strconv.Atoi(peersOffline)
         elevatorConfig.OnlineList[newID] = false
     }
+    */
+    fmt.Println("New peer: ", p.New)
+    if len(p.New) > 0 {
+        newID, _ := strconv.Atoi(p.New) // ID of new Peer
+        if newID == elevatorConfig.ElevID && len(p.Peers) > 1 {
+            // Either been offline or first time online
+            // Ask for matrix
+            elevatorConfig.IsOnline = true
+
+        } else if newID == elevatorConfig.ElevID && len(p.Peers) == 1 {
+            // You are alone on network (Either first or someone disappeard)
+            // do nothing
+            elevatorConfig.IsOnline = true
+        } else if newID != elevatorConfig.ElevID && elevatorConfig.IsOnline{
+            // Already online, send matrix to new
+
+            message := []Message {{Select: 5, ID: newID}}
+            UpdateElevatorChan <- message
+        }
+    }
+
+    for _, peerLost := range p.Lost {
+        newID, _ := strconv.Atoi(peerLost)
+        message := []Message {{Select: 7, ID: newID}}
+        UpdateElevatorChan <- message
+
+    }
 
             //Send all matrix
             // if has not been online before, add to online list
 
-    fmt.Println(elevatorConfig.OnlineList)
+    //fmt.Println(elevatorConfig.OnlineList)
 
     /*
       if (len(peer.Peers) == 0) {

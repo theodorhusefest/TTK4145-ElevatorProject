@@ -43,7 +43,7 @@ func main() {
   OrderManagerchans := orderManager.OrderManagerChannels{
     UpdateElevatorChan: make(chan []Message),
     LocalOrderFinishedChan: make(chan int),
-    UpdateElevStatus: make(chan []Message),
+    UpdateElevStatusch: make(chan []Message),
   }
   // Channels for SyncElevator
   SyncElevatorChans := syncElevator.SyncElevatorChannels{
@@ -67,12 +67,13 @@ func main() {
 
   // Goroutines used in FSM
   go io.PollFloorSensor(FSMchans.ArrivedAtFloorChan)
-  go FSM.StateMachine(FSMchans, OrderManagerchans.LocalOrderFinishedChan, OrderManagerchans.UpdateElevStatus, elevatorMatrix,elevConfig)
+  go FSM.StateMachine(FSMchans, OrderManagerchans.LocalOrderFinishedChan, OrderManagerchans.UpdateElevStatusch, elevatorMatrix,elevConfig)
 
   // Goroutines used in OrderManager
   go io.PollButtons(NewGlobalOrderChan)
   go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix, SyncElevatorChans.OutGoingMsg,
         SyncElevatorChans.ChangeInOrderch, SyncElevatorChans.SendFullMatrixch, elevConfig)
+  go orderManager.UpdateElevStatus(OrderManagerchans.UpdateElevStatusch, SyncElevatorChans.ChangeInOrderch, elevatorMatrix)
 
   // Goroutines used in SyncElevator
   go syncElevator.SyncElevator(SyncElevatorChans, elevConfig, OrderManagerchans.UpdateElevatorChan)

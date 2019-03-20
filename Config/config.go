@@ -10,6 +10,7 @@ type ElevConfig struct{
   NumElevators int
   ElevID int
   OnlineList [NumElevators]bool
+  IsOnline bool
 }
 
 type MotorDirection int

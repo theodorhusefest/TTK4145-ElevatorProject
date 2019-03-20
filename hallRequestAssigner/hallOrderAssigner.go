@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strconv"
+	"../Utilities"
 )
 
 type HallAssignerElev struct {
@@ -25,19 +26,31 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Messa
 	OrderInput := HallAssignerInput{}
 	OrderInput.States = make(map[string]*HallAssignerElev)
 	var updatedOrders []Message
+	var hallRequests [NumFloors][2]bool
+
+	fmt.Println("In hallAssigner")
+	utilities.PrintMatrix(elevatorMatrix, NumFloors, NumElevators)
+
 
 	// Find all active orders in matrix
 	for floor := 0; floor < NumFloors; floor++ {
 		for button := 0; button < 2; button++ {
 			for elev := 0; elev < NumElevators; elev++ {
+				//fmt.Println(elevatorMatrix[len(elevatorMatrix)-floor-1][button+elev*NumElevators])
 				if elevatorMatrix[len(elevatorMatrix)-floor-1][button+elev*NumElevators] == 1 {
-					OrderInput.HallRequests[floor][button] = true
-				} else {
-					OrderInput.HallRequests[floor][button] = false
+					fmt.Println("TRUE", elevatorMatrix[len(elevatorMatrix)-floor-1][button+elev*NumElevators])
+					fmt.Println(hallRequests[floor][button])
+					hallRequests[floor][button] = true
+					fmt.Println(hallRequests[floor][button])
 				}
 			}
 		}
 	}
+	OrderInput.HallRequests = hallRequests
+
+	fmt.Println("-----")
+	fmt.Println(hallRequests)
+	fmt.Println("-----")
 	if newGlobalOrder.Button != BT_Cab {
 		OrderInput.HallRequests[newGlobalOrder.Floor][int(newGlobalOrder.Button)] = true
 	}

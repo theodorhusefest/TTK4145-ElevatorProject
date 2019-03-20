@@ -6,6 +6,7 @@ import (
   "../orderManager"
 	. "../Config"
   "time"
+  "../Utilities"
 
 )
 
@@ -16,7 +17,7 @@ type FSMchannels struct{
   DoorTimeoutChan chan bool
 }
 
-func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateElevStatus chan []Message, elevatorMatrix [][]int, elevatorConfig ElevConfig){
+func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateElevStatusch chan []Message, elevatorMatrix [][]int, elevatorConfig ElevConfig){
 	elevator := Elevator{
 			ID: elevatorMatrix[0][elevatorConfig.ElevID*3],
 			State: IDLE,
@@ -31,6 +32,7 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
   for {
     select {
     case newLocalOrder := <- FSMchans.NewLocalOrderChan:
+			fmt.Println("he")
 
 			switch elevator.State {
 			case IDLE:
@@ -62,8 +64,12 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 					LocalOrderFinishedChan <- elevator.Floor
 				}
 			}
+
+			fmt.Println("End of IDLE")
+
 			updatedElev := []Message{{Select: 3, ID: elevator.ID ,State: int(elevator.State) ,Floor: elevator.Floor, Dir: elevator.Dir}}
-			UpdateElevStatus <- updatedElev
+			UpdateElevStatusch <- updatedElev
+
 
 
 
@@ -72,6 +78,9 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
         orderManager.InsertFloor(elevatorConfig.ElevID,currentFloor,elevatorMatrix)
 		elevator.Floor = currentFloor
 		io.SetFloorIndicator(currentFloor)
+
+		utilities.PrintMatrix(elevatorMatrix, elevatorConfig.NumFloors,elevatorConfig.NumElevators)
+
         if shouldStop(elevatorConfig.ElevID, elevator, elevatorMatrix) {
 			elevator.State = DOOROPEN
 			orderManager.InsertState(elevatorConfig.ElevID, int(DOOROPEN), elevatorMatrix)
@@ -84,11 +93,11 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 			LocalOrderFinishedChan <- elevator.Floor
         }
 		updatedElev := []Message{{Select: 3, ID: elevator.ID ,State: int(elevator.State) ,Floor: elevator.Floor, Dir: elevator.Dir}}
-		UpdateElevStatus <- updatedElev
+		UpdateElevStatusch <- updatedElev
 
 
 		case <-doorOpenTimeOut.C:
-
+			fmt.Println("DOOROPEN")
 			io.SetDoorOpenLamp(false)
 			elevator.Dir = chooseDirection(elevatorConfig.ElevID,elevatorMatrix, elevator)
 			orderManager.InsertDirection(elevatorConfig.ElevID, elevator.Dir, elevatorMatrix)
@@ -104,7 +113,7 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 				fmt.Println(MOVING)
 			}
 			updatedElev := []Message{{Select: 3, ID: elevator.ID ,State: int(elevator.State) ,Floor: elevator.Floor, Dir: elevator.Dir}}
-			UpdateElevStatus <- updatedElev
+			UpdateElevStatusch <- updatedElev
     }
 
   }
