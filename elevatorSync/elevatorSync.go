@@ -88,7 +88,9 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConf
         fmt.Println("I'm online")
         online = true
       }
-      fmt.Println(peer.Peers)
+      fmt.Println(peer.New, " just connected")
+
+
 
       // ????????????    orderManager.addOrder(elevatorConfig,peer.Peers[string(elevatorConfig.ElevID)],)     ?????????????????????
 

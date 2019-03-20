@@ -20,10 +20,11 @@ type HallAssignerInput struct {
 	States       map[string]*HallAssignerElev `json:"states"`
 }
 
-func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) {
+func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Message {
 
 	OrderInput := HallAssignerInput{}
 	OrderInput.States = make(map[string]*HallAssignerElev)
+	var updatedOrders []Message
 
 	// Find all active orders in matrix
 	for floor := 0; floor < NumFloors; floor++ {
@@ -37,11 +38,14 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) {
 			}
 		}
 	}
-	OrderInput.HallRequests[newGlobalOrder.Floor][int(newGlobalOrder.Button)] = true
+	if newGlobalOrder.Button != BT_Cab {
+		OrderInput.HallRequests[newGlobalOrder.Floor][int(newGlobalOrder.Button)] = true
+	}
+	
 
 	// Update states
 	for elev := 0; elev < NumElevators; elev++ {
-		if elevatorMatrix[1][elev*NumElevators] != 3 { // Elevator is offline
+		if elevatorMatrix[1][elev*NumElevators] != 3 { // Elevator is online
 			onlineElev := HallAssignerElev{}
 			onlineElev.Floor = elevatorMatrix[2][elev*NumElevators]
 
@@ -54,15 +58,15 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) {
 			}
 
 			// Check cabrequests
-			var CabRequests [NumFloors]bool
+			var cabRequests [NumFloors]bool
 			for floor := 0; floor < NumFloors; floor++ {
 				if elevatorMatrix[len(elevatorMatrix)-floor-1][2+elev*NumElevators] == 1 {
-					CabRequests[floor] = true
+					cabRequests[floor] = true
 				} else {
-					CabRequests[floor] = false
+					cabRequests[floor] = false
 				}
 			}
-			onlineElev.CabRequests = CabRequests
+			onlineElev.CabRequests = cabRequests
 
 			if elevatorMatrix[1][elev*NumElevators] == 0 {
 				onlineElev.Behaviour = "idle"
@@ -71,34 +75,38 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) {
 			} else {
 				onlineElev.Behaviour = "doorOpen"
 			}
-			ID_str := strconv.Itoa(elevatorMatrix[0][elev*NumElevators])
+			IDstr := strconv.Itoa(elevatorMatrix[0][elev*NumElevators])
 
-			OrderInput.States[ID_str] = &onlineElev
+			OrderInput.States[IDstr] = &onlineElev
 		}
 	}
 
 	arg, _ := json.Marshal(OrderInput)
-	result, err := exec.Command("sh", "+x", "-c", "./hallAssigner -i'"+string(arg)+"'").Output()
+	result, err := exec.Command("sh", "+x", "-c", "./MacHallAssigner -i'"+string(arg)+"'").Output()
 	if err != nil {
-		fmt.Println("Error in hall Request assigner", err)
-	}
+		fmt.Println("Error in Hall Request Assigner", err)
+	} else {
+		var assignedOrders map[string][][]bool
+		json.Unmarshal(result, &assignedOrders)
 
-	var assignedOrders map[string][][]bool
-	json.Unmarshal(result, &assignedOrders)
-	fmt.Println(ButtonType(1))
-	var updatedOrders []Message
 
-	for floor := 0; floor < NumFloors; floor++ {
-		for button := 0; button < 2; button++ {
-			for elev := 0; elev < NumElevators; elev++ {
-				//fmt.Println("Floor: ", floor, "button: ", button, assignedOrders[strconv.Itoa(elev)][floor][button])
-				if assignedOrders[strconv.Itoa(elev)][floor][button] == true && elevatorMatrix[len(elevatorMatrix)-floor-1][button+elev*NumElevators] == 0 {
-					update := Message{ID: elev, Floor: floor, Button: ButtonType(button)}
-					updatedOrders = append(updatedOrders, update)
+	for ElevID, orders := range assignedOrders {
+		ElevIDint, _ := strconv.Atoi(ElevID)
+		for floor := 0; floor < NumFloors; floor++ {
+			for button := 0; button < 2; button++ {
+				if orders[floor][button] == true && elevatorMatrix[len(elevatorMatrix)-floor-1][button + ElevIDint*NumElevators] == 1 {
+					newOrder := Message{Select: 1, ID: ElevIDint, Floor: floor, Button: ButtonType(button)}
+					updatedOrders = append(updatedOrders, newOrder)
 				}
 			}
 		}
 	}
+
+
+
+		fmt.Println("Assigned Orders: ", assignedOrders)
+	}
+	fmt.Println("Updated Orders: ", updatedOrders)
 	return updatedOrders
 
 }
