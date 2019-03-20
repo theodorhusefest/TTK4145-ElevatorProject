@@ -41,7 +41,7 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Messa
 	if newGlobalOrder.Button != BT_Cab {
 		OrderInput.HallRequests[newGlobalOrder.Floor][int(newGlobalOrder.Button)] = true
 	}
-	
+
 
 	// Update states
 	for elev := 0; elev < NumElevators; elev++ {
@@ -82,7 +82,7 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Messa
 	}
 
 	arg, _ := json.Marshal(OrderInput)
-	result, err := exec.Command("sh", "+x", "-c", "./MacHallAssigner -i'"+string(arg)+"'").Output()
+	result, err := exec.Command("sh", "+x", "-c", "./hallAssigner -i'"+string(arg)+"'").Output()
 	if err != nil {
 		fmt.Println("Error in Hall Request Assigner", err)
 	} else {
@@ -94,7 +94,7 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Messa
 		ElevIDint, _ := strconv.Atoi(ElevID)
 		for floor := 0; floor < NumFloors; floor++ {
 			for button := 0; button < 2; button++ {
-				if orders[floor][button] == true && elevatorMatrix[len(elevatorMatrix)-floor-1][button + ElevIDint*NumElevators] == 1 {
+				if orders[floor][button] == true && elevatorMatrix[len(elevatorMatrix)-floor-1][button + ElevIDint*NumElevators] == 0 {
 					newOrder := Message{Select: 1, ID: ElevIDint, Floor: floor, Button: ButtonType(button)}
 					updatedOrders = append(updatedOrders, newOrder)
 				}

@@ -3,63 +3,70 @@ package syncElevator
 import (
   "fmt"
   "time"
+  "strconv"
   "../Network/network/peers"
-  "../Config"
+  . "../Config"
+
 )
 
 
 
 type SyncElevatorChannels struct{
-  OutGoingMsg chan config.Message
-  InCommingMsg chan config.Message
-  ChangeInOrderch chan config.Message
+  OutGoingMsg chan []Message
+  InCommingMsg chan []Message
+  ChangeInOrderch chan []Message
+  SendFullMatrixch chan [][]int
   PeerUpdate chan peers.PeerUpdate
   TransmitEnable chan bool
   BroadcastTicker chan bool
+  AskForMatrix chan bool
 }
 
-func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConfig, UpdateElevatorChan chan config.Message){
+func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig ElevConfig, UpdateElevatorChan chan []Message){
 
-  var online bool
+  //var online bool
 
 //  broadcastTicker(syncChans)
-  message := config.Message{
-  }
 
   broadCastTicker := time.NewTicker(100 * time.Millisecond)
-
+  online := false
   for{
     select {
     // --------------------------------------------------------------------------Case triggered by broadcast-ticker.
-    case <- broadCastTicker.C:
+    /*case <- broadCastTicker.C:
       if online {
         syncChans.OutGoingMsg <- message
 //        fmt.Println(message)
       }
 
-
+*/
 
     // --------------------------------------------------------------------------Case triggered by local ordermanager, change in order
-    case changeInOrder := <-syncChans.ChangeInOrderch:
+    case changeInOrder := <- syncChans.ChangeInOrderch:
       //Håndter endring som kom fra ordermanager. Send alt inn på message og sett message.Done = false
-      message = changeInOrder
+      //message := changeInOrder
+
 
       // Broadcast message
-      syncChans.OutGoingMsg <- message
+      select {
+      case <- broadCastTicker.C:
+          syncChans.OutGoingMsg <- changeInOrder
+          fmt.Println("Sending message")
+      }
+
 
       // Vent til alle er enige, gi klarsignal til ordermanager ??????
 
       // Sett message.Done = true
-      message.Done = true
 
 
 
     // --------------------------------------------------------------------------Case triggered by bcast.Recieving
     case msgRecieved := <- syncChans.InCommingMsg:
-
+        /*
       // Check if message has been processed.
       if !msgRecieved.Done {
-        message = msgRecieved
+        message := msgRecieved
 
         // If select = 1, new order was recieved.
         if message.Select == 1 {
@@ -68,31 +75,68 @@ func SyncElevator(syncChans SyncElevatorChannels, elevatorConfig config.ElevConf
 
       // Wait to everyone agree
 
-      // Send message to local ordermanager
-      UpdateElevatorChan <- message
-      message.Done = true
-      }
+      // Send message to local ordermanager*/
+      UpdateElevatorChan <- msgRecieved
 
 
+
+
+
+      //}
 
     // --------------------------------------------------------------------------Case triggered by update in peers
-    case peer := <- syncChans.PeerUpdate:
+    case p := <- syncChans.PeerUpdate:
+    if len(p.Peers) == 0 {
+        online = false
+    }
+
+
+
     //Update peers
     //Check how many peers are connected
     //If only you, start singelmode ???????????????????
+    fmt.Println("Peers: ", p.Peers)
+    for _, peersOnline := range p.Peers {
+        newID, _ := strconv.Atoi(peersOnline)
+        if (elevatorConfig.OnlineList[newID] == false) && !online {
+            fmt.Println(peersOnline)
+            fmt.Println(elevatorConfig.OnlineList[newID])
+            elevatorConfig.OnlineList[newID] = true
+            fmt.Println("Ask for resend Matrix")
+            message := []Message {{Select: 5, ID: newID}}
+            //syncChans.OutGoingMsg <- message
+            fmt.Println(message)
+            online = true
+        } else if (elevatorConfig.OnlineList[newID] == false) {
+            elevatorConfig.OnlineList[newID] = true
+        }
+    }
+    for _, peersOffline := range p.Lost {
+        newID, _ := strconv.Atoi(peersOffline)
+        elevatorConfig.OnlineList[newID] = false
+    }
 
+            //Send all matrix
+            // if has not been online before, add to online list
+
+    fmt.Println(elevatorConfig.OnlineList)
+
+    /*
       if (len(peer.Peers) == 0) {
         fmt.Println("I'm offline")
-        online = false
+        //online = false
       } else {
         fmt.Println("I'm online")
-        online = true
+        fmt.Println("Currently online:", peer.Peers)
+        fmt.Println(peer.New, "just connected")
+
+        //online = true
       }
-      fmt.Println(peer.New, " just connected")
+*/
 
 
 
-      // ????????????    orderManager.addOrder(elevatorConfig,peer.Peers[string(elevatorConfig.ElevID)],)     ?????????????????????
+      // ????????????    orderManager.addOrder(elevatorConfig,peer.Peers[string(elevatorElevID)],)     ?????????????????????
 
 
     }

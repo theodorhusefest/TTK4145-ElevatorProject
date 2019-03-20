@@ -4,7 +4,7 @@ import (
 //  "fmt"
   . "./Config"
   "./Initialize"
-//  "./Utilities"
+  //"./Utilities"
   "./orderManager"
   "./IO"
   "./FSM"
@@ -41,17 +41,20 @@ func main() {
   }
   // Channels for OrderManager
   OrderManagerchans := orderManager.OrderManagerChannels{
-    UpdateElevatorChan: make(chan Message),
+    UpdateElevatorChan: make(chan []Message),
     LocalOrderFinishedChan: make(chan int),
+    UpdateElevStatus: make(chan []Message),
   }
   // Channels for SyncElevator
   SyncElevatorChans := syncElevator.SyncElevatorChannels{
-    OutGoingMsg: make(chan Message),
-    InCommingMsg: make(chan Message),
-    ChangeInOrderch: make(chan Message),
+    OutGoingMsg: make(chan []Message),
+    InCommingMsg: make(chan []Message),
+    ChangeInOrderch: make(chan []Message),
     PeerUpdate: make(chan peers.PeerUpdate),
     TransmitEnable: make(chan bool),
     BroadcastTicker: make(chan bool),
+    SendFullMatrixch: make(chan [][]int),
+    AskForMatrix: make(chan bool),
   }
   var (
     NewGlobalOrderChan = make(chan ButtonEvent)
@@ -60,15 +63,16 @@ func main() {
   channelFloor := make(chan int) //channel that is used in InitElevator. Should maybe have a struct with channels?
   //elevatorMatrix := initialize.InitializeMatrix(NumFloors,NumElevators)  // Set up matrix, add ID
   initialize.InitElevator(elevConfig,elevatorMatrix,channelFloor)  // Move elevator to nearest floor and update matrix
-//  utilities.PrintMatrix(elevatorMatrix, elevConfig.NumFloors,elevConfig.NumElevators)
+  //utilities.PrintMatrix(elevatorMatrix, elevConfig.NumFloors,elevConfig.NumElevators)
 
   // Goroutines used in FSM
   go io.PollFloorSensor(FSMchans.ArrivedAtFloorChan)
-  go FSM.StateMachine(FSMchans, OrderManagerchans.LocalOrderFinishedChan, elevatorMatrix,elevConfig)
+  go FSM.StateMachine(FSMchans, OrderManagerchans.LocalOrderFinishedChan, OrderManagerchans.UpdateElevStatus, elevatorMatrix,elevConfig)
 
   // Goroutines used in OrderManager
   go io.PollButtons(NewGlobalOrderChan)
-  go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix, SyncElevatorChans.OutGoingMsg, SyncElevatorChans.ChangeInOrderch, elevConfig)
+  go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix, SyncElevatorChans.OutGoingMsg,
+        SyncElevatorChans.ChangeInOrderch, SyncElevatorChans.SendFullMatrixch, elevConfig)
 
   // Goroutines used in SyncElevator
   go syncElevator.SyncElevator(SyncElevatorChans, elevConfig, OrderManagerchans.UpdateElevatorChan)
