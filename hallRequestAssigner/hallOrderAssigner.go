@@ -38,19 +38,13 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Messa
 			for elev := 0; elev < NumElevators; elev++ {
 				//fmt.Println(elevatorMatrix[len(elevatorMatrix)-floor-1][button+elev*NumElevators])
 				if elevatorMatrix[len(elevatorMatrix)-floor-1][button+elev*NumElevators] == 1 {
-					fmt.Println("TRUE", elevatorMatrix[len(elevatorMatrix)-floor-1][button+elev*NumElevators])
-					fmt.Println(hallRequests[floor][button])
 					hallRequests[floor][button] = true
-					fmt.Println(hallRequests[floor][button])
 				}
 			}
 		}
 	}
 	OrderInput.HallRequests = hallRequests
 
-	fmt.Println("-----")
-	fmt.Println(hallRequests)
-	fmt.Println("-----")
 	if newGlobalOrder.Button != BT_Cab {
 		OrderInput.HallRequests[newGlobalOrder.Floor][int(newGlobalOrder.Button)] = true
 	}
