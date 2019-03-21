@@ -10,7 +10,7 @@ type ElevConfig struct{
   NumElevators int
   ElevID int
   OnlineList [NumElevators]bool
-  IsOnline bool
+  IsDefined bool
 }
 
 type MotorDirection int
@@ -52,10 +52,23 @@ type Elevator struct{
 }
 
 
+type MessageType int
+
+ const (
+  NewOrder      MessageType = iota + 1
+  OrderComplete
+  UpdateStates
+  UpdateOffline
+  ACK
+  SendMatrix
+  UpdatedMatrix
+)
+
+
 // Struct for sendig of messages
 type Message struct {
   // Select different cases of message based on value
-  Select int
+  Select MessageType
   // Message.Done = true: Message has been processed
   Done bool
 

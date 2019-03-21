@@ -2,11 +2,12 @@ package orderManager
 
 import(
   . "../Config"
-  "../Utilities"
+  //"../Utilities"
   "../IO"
   "../Config"
   "../hallRequestAssigner"
   "fmt"
+  "time"
 )
 
 /*
@@ -23,164 +24,158 @@ Matrix  ID_1        -----------   -----     ID_2        -----------   -----     
 
 
 type OrderManagerChannels struct{
-  UpdateElevatorChan chan []Message
   LocalOrderFinishedChan chan int
-  UpdateElevStatusch chan []Message
-  PrintLiveMatrixCh chan string
+  NewLocalOrderch chan Message
+  UpdateOrderch chan Message
+  MatrixUpdatech chan Message
+
 }
 
 
-func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,
-        elevatorMatrix [][]int, OutGoingMsg chan []Message, ChangeInOrderch chan []Message, SendFullMatrixch chan [][]int ,elevatorConfig config.ElevConfig) {
-  localOrder := ButtonEvent{}
+func OrderManager(elevatorMatrix [][]int, elevatorConfig config.ElevConfig, OrderManagerChans OrderManagerChannels, 
+                  NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,
+                  OutGoingMsg chan []Message, ChangeInOrderch chan []Message, UpdateElevStatusch chan Message) {
+
+  GlobalOrderTimedOut := time.NewTimer(5 * time.Second)
+  GlobalOrderTimedOut.Stop()
+
   for {
-    select {
+      select {
 
-      /*
-      1: Ordre tas imot av en heis.
-      2: Den heisen kjører kostfunksjon og bestemmer hvem som får jobben.
-      3: Heisen sender ordren til alle andre heiser, så alle er oppdatert.
-      4: Alle skrur
-      5: Den heisen som får jobben, trigger sin egen FSM med        NewLocalOrderChan <- int(newGlobalOrder.Floor)
-      6: Heisen som har utført et oppdrag oppdaterer de andre, så alle vet det samme
-      7: Alle fjerner ordren lokalt og evt. skrur av lys
-      */
+        /*
+        1: Ordre tas imot av en heis.
+        2: Den heisen kjører kostfunksjon og bestemmer hvem som får jobben.
+        3: Heisen sender ordren til alle andre heiser, så alle er oppdatert.
+        4: Alle skrur
+        5: Den heisen som får jobben, trigger sin egen FSM med        NewLocalOrderChan <- int(newGlobalOrder.Floor)
+        6: Heisen som har utført et oppdrag oppdaterer de andre, så alle vet det samme
+        7: Alle fjerner ordren lokalt og evt. skrur av lys
+        */
 
-    // -----------------------------------------------------------------------------------------------------Case triggered by local button
-    case NewGlobalOrder := <- NewGlobalOrderChan:
+      // -----------------------------------------------------------------------------------------------------Case triggered by local button
+      case NewGlobalOrder := <- NewGlobalOrderChan:
 
-      switch NewGlobalOrder.Button {
+        switch NewGlobalOrder.Button {
 
-      case BT_Cab:
+        case BT_Cab:
 
-      outMessage := []Message {{Select: 1, Done: false, ID: elevatorConfig.ElevID, Floor: NewGlobalOrder.Floor, Button: NewGlobalOrder.Button}}
-      // Send message to sync
+        outMessage := []Message {{Select: NewOrder, Done: false, ID: elevatorConfig.ElevID, Floor: NewGlobalOrder.Floor, Button: NewGlobalOrder.Button}}
+        // Send message to sync
 
-      ChangeInOrderch <- outMessage
+        ChangeInOrderch <- outMessage
 
-     // addOrder(elevatorConfig.ElevID, elevatorMatrix, NewGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
-    //  setLight(outMessage[0], elevatorConfig)
+       // addOrder(elevatorConfig.ElevID, elevatorMatrix, NewGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
+      //  setLight(outMessage[0], elevatorConfig)
 
 
-      default:
+        default:
 
-      //var newHallOrders []Message
-      newHallOrders := hallOrderAssigner.AssignHallOrder(NewGlobalOrder, elevatorMatrix)
-      //fmt.Println("New Hall orders", newHallOrders)
-      fmt.Println()
-      // ???????????????????       Send new_order to everyonerderManager.InsertState(elevatorConfig.ElevID, 0, elevatorMa     ????
-
-      // Send message to sync                //time.Sleep(10*time.Second)
-
-      ChangeInOrderch <- newHallOrders
-      /*
-      // Wait for sync to say everyone knows the same
-
-      //  Update local matrix, addOrder
-      addOrder(elevatorConfig.ElevID, elevatorMatrix, NewGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
-      setLight(message, elevatorConfig)
-
-      // if costfunction gives local elevator the order:
-      NewLocalOrderChan <- int(NewGlobalOrder.Floor)
-
-      // Print updated matrix for fun
-      utilities.PrintMatrix(elevatorMatrix,4,3)
-*/
-    }
-
-    // -----------------------------------------------------------------------------------------------------Case triggered by elevator done with order
-    case LocalOrderFinished := <- OrderManagerChans.LocalOrderFinishedChan:
-
-      // Update message to be sent to everyone. Select = 2 for order done
-
-      outMessage := []Message {{Select: 2, Done: false, ID: elevatorConfig.ElevID, Floor: LocalOrderFinished}}
-
-      // Send message to sync
-      ChangeInOrderch <- outMessage
-
-      // Wait for sync to say everyone knows the same
-
-      // Print updated matrix for fun)
+        newHallOrders := hallOrderAssigner.AssignHallOrder(NewGlobalOrder, elevatorMatrix)
+        fmt.Println()
 
 
 
-//  case elevStatus := <-OrderManagerChans.UpdateElevStatus:
-//      ChangeInOrderch <- elevStatus
-      //fmt.Println(elevStatus)
+        // Send message to sync                //time.Sleep(10*time.Second)
+
+        ChangeInOrderch <- newHallOrders
+        /*
+        // Wait for sync to say everyone knows the same
+  */
+      }
+
+      case OrderUpdate := <- OrderManagerChans.UpdateOrderch:
+          
+          switch OrderUpdate.Select {
+              case NewOrder:
+                  localOrder := ButtonEvent{Floor: OrderUpdate.Floor, Button: OrderUpdate.Button}
+                  addOrder(OrderUpdate.ID, elevatorMatrix, localOrder)
+                  setLight(OrderUpdate, elevatorConfig)
+                  if OrderUpdate.ID == elevatorConfig.ElevID {
+                      NewLocalOrderChan <- OrderUpdate.Floor
+                      fmt.Println("Sending LocalOrder")
+                  }
+
+              case OrderComplete:
+                  clearFloors(OrderUpdate.Floor, elevatorMatrix, OrderUpdate.ID)
+                  clearLight(OrderUpdate.Floor)
+
+          }
 
 
-    // -------------------------------------------------------------------------------------------------------Case triggered by incomming update (New_order, order_done etc.)
-  case newUpdateFromSync := <- OrderManagerChans.UpdateElevatorChan:
-      inMessages := newUpdateFromSync
-      for _, message := range inMessages {
-          if !(message.Done) {
-            //SELECT = 1: NEW ORDER
+      case StateUpdate := <- UpdateElevStatusch:
 
-            switch  message.Select {
-            case 1:
-                localOrder.Floor = message.Floor
-                localOrder.Button = message.Button
-                fmt.Println("MessageID", message.ID, localOrder)
-                addOrder(message.ID, elevatorMatrix, localOrder)
-                setLight(message, elevatorConfig)
-                utilities.PrintMatrix(elevatorMatrix, elevatorConfig.NumFloors,elevatorConfig.NumElevators)
+          switch StateUpdate.Select {
+              case UpdateStates:
 
+                  InsertID(StateUpdate.ID, elevatorMatrix)
+                  InsertState(StateUpdate.ID, StateUpdate.State, elevatorMatrix)
+                  InsertDirection(StateUpdate.ID, StateUpdate.Dir, elevatorMatrix)
+                  InsertFloor(StateUpdate.ID, StateUpdate.Floor, elevatorMatrix)
+
+              case UpdateOffline:
+                  InsertState(StateUpdate.ID, int(OFFLINE), elevatorMatrix)
+
+              }
 
 
-                if message.ID == elevatorConfig.ElevID {
-                    NewLocalOrderChan <- message.Floor
-                    fmt.Println("Sending LocalOrder")
-                }
+      case MatrixUpdate := <- OrderManagerChans.MatrixUpdatech:
 
-            case 2:
-                clearFloors(message.Floor, elevatorMatrix, message.ID)
-                clearLight(message.Floor)
-
-            case 3:
-                InsertID(message.ID, elevatorMatrix)
-                InsertState(message.ID, message.State, elevatorMatrix)
-                InsertDirection(message.ID, message.Dir, elevatorMatrix)
-                InsertFloor(message.ID, message.Floor, elevatorMatrix)
-
-
-            case 4:
-                // ACKNOWLEDGE
-            case 5:
+          switch MatrixUpdate.Select {
+            case SendMatrix:
                 fmt.Println("Someone new on network, sending matrix")
-                outMessage := []Message{{Select: 6, Matrix: elevatorMatrix, ID: message.ID}}
+                outMessage := []Message{{Select: UpdatedMatrix, Matrix: elevatorMatrix, ID: MatrixUpdate.ID}}
                 ChangeInOrderch <- outMessage
 
 
-            case 6:
-                if message.ID == elevatorConfig.ElevID{
+            case UpdatedMatrix:
+                if MatrixUpdate.ID == elevatorConfig.ElevID{
                     fmt.Println("Resetting matrix")
-                    elevatorMatrix = updateOrdersInMatrix(elevatorMatrix, message.Matrix, message.ID)
+                    elevatorMatrix = updateOrdersInMatrix(elevatorMatrix, MatrixUpdate.Matrix, MatrixUpdate.ID)
                 }
-                utilities.PrintMatrix(elevatorMatrix, elevatorConfig.NumFloors,elevatorConfig.NumElevators)
-
-            case 7:
-                InsertState(message.ID, int(OFFLINE), elevatorMatrix)
-
             }
-            message.Done = true
-        }
+
+
+
+
+
+      // -----------------------------------------------------------------------------------------------------Case triggered by elevator done with order
+      case LocalOrderFinished := <- OrderManagerChans.LocalOrderFinishedChan:
+
+        // Update message to be sent to everyone. Select = 2 for order done
+
+        outMessage := []Message {{Select: OrderComplete, Done: false, ID: elevatorConfig.ElevID, Floor: LocalOrderFinished}}
+
+        // Send message to sync
+        ChangeInOrderch <- outMessage
+
+        // Wait for sync to say everyone knows the same
+
+        // Print updated matrix for fun)
+
+
+      // ------------------------------------------------------------------------------------------------------- Case triggered every 5 seconds to check if orders left
+      case <- GlobalOrderTimedOut.C:
+        fmt.Println("GlobalOrderTimedOut")
+        GlobalOrderTimedOut.Reset(5 * time.Second)
+
+
+
+      // -------------------------------------------------------------------------------------------------------Case triggered by incomming update (New_order, order_done etc.)
+    }
+  }
+}
+
+
+func ordersLeftInMatrix(elevatorMatrix [][]int, elevatorConfig ElevConfig) int {
+  for floor := 4; floor < 4+ NumFloors; floor++ {
+    for buttons := (elevatorConfig.ElevID*3); buttons < (elevatorConfig.ElevID*3 + 3); buttons++ {
+      if elevatorMatrix[floor][buttons] == 1 {
+        return floor
       }
-      fmt.Println("End for for loop")
     }
   }
+  return -1
 }
-
-
-func PrintLiveMatrix(input chan string) {
-  for {
-    select {
-    case <- input:
-      utilities.PrintMatrix(elevatorMatrix, elevatorConfig.NumFloors,elevatorConfig.NumElevators)
-
-    }
-  }
-}
-
 
 
 func updateOrdersInMatrix(newMatrix [][]int, oldMatrix [][]int, id int) [][]int {
@@ -196,20 +191,18 @@ func updateOrdersInMatrix(newMatrix [][]int, oldMatrix [][]int, id int) [][]int 
 }
 
 
-func UpdateElevStatus(UpdateElevStatusch chan []Message, ChangeInOrderch chan []Message, elevatorMatrix [][]int) {
+func UpdateElevStatus(elevatorMatrix [][]int, FSMUpdateElevStatusch chan Message, ChangeInOrderch chan []Message) {
     for {
         select {
-        case inMessages := <- UpdateElevStatusch:
-            for _, message := range inMessages {
-                InsertID(message.ID, elevatorMatrix)
-                InsertState(message.ID, message.State, elevatorMatrix)
-                InsertDirection(message.ID, message.Dir, elevatorMatrix)
-                InsertFloor(message.ID, message.Floor, elevatorMatrix)
+        case message := <- FSMUpdateElevStatusch:
+            InsertID(message.ID, elevatorMatrix)
+            InsertState(message.ID, message.State, elevatorMatrix)
+            InsertDirection(message.ID, message.Dir, elevatorMatrix)
+            InsertFloor(message.ID, message.Floor, elevatorMatrix)
 
-            }
-            ChangeInOrderch <- inMessages
+            OutMessage := []Message{message}
+            ChangeInOrderch <- OutMessage
         }
-
     }
 }
 

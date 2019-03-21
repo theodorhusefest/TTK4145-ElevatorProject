@@ -14,7 +14,6 @@ import (
   "time"
   "strconv"
   "flag"
-  "os/"
 )
 
 
@@ -42,9 +41,11 @@ func main() {
   }
   // Channels for OrderManager
   OrderManagerchans := orderManager.OrderManagerChannels{
-    UpdateElevatorChan: make(chan []Message),
     LocalOrderFinishedChan: make(chan int),
-    UpdateElevStatusch: make(chan []Message),
+    NewLocalOrderch: make(chan Message),
+    UpdateOrderch: make(chan Message),
+    MatrixUpdatech: make(chan Message),
+
   }
   // Channels for SyncElevator
   SyncElevatorChans := syncElevator.SyncElevatorChannels{
@@ -54,10 +55,10 @@ func main() {
     PeerUpdate: make(chan peers.PeerUpdate),
     TransmitEnable: make(chan bool),
     BroadcastTicker: make(chan bool),
-    PrintLiveMatrixCh chan string,
   }
   var (
     NewGlobalOrderChan = make(chan ButtonEvent)
+    UpdateElevStatusch = make(chan Message)
   )
 
   channelFloor := make(chan int) //channel that is used in InitElevator. Should maybe have a struct with channels?
@@ -67,16 +68,18 @@ func main() {
 
   // Goroutines used in FSM
   go io.PollFloorSensor(FSMchans.ArrivedAtFloorChan)
-  go FSM.StateMachine(FSMchans, OrderManagerchans.LocalOrderFinishedChan, OrderManagerchans.UpdateElevStatusch, elevatorMatrix,elevConfig)
+  go FSM.StateMachine(FSMchans, OrderManagerchans.LocalOrderFinishedChan, UpdateElevStatusch, elevatorMatrix, elevConfig)
 
   // Goroutines used in OrderManager
   go io.PollButtons(NewGlobalOrderChan)
-  go orderManager.OrderManager(OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, elevatorMatrix, SyncElevatorChans.OutGoingMsg,
-        SyncElevatorChans.ChangeInOrderch, SyncElevatorChans.SendFullMatrixch, elevConfig)
-  go orderManager.UpdateElevStatus(OrderManagerchans.UpdateElevStatusch, SyncElevatorChans.ChangeInOrderch, elevatorMatrix)
+  go orderManager.OrderManager(elevatorMatrix, elevConfig, OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, SyncElevatorChans.OutGoingMsg,
+        SyncElevatorChans.ChangeInOrderch, UpdateElevStatusch)
+
+  go orderManager.UpdateElevStatus(elevatorMatrix, UpdateElevStatusch, SyncElevatorChans.ChangeInOrderch)
 
   // Goroutines used in SyncElevator
-  go syncElevator.SyncElevator(SyncElevatorChans, elevConfig, OrderManagerchans.UpdateElevatorChan)
+
+  go syncElevator.SyncElevator(elevatorMatrix,SyncElevatorChans, elevConfig, OrderManagerchans.UpdateOrderch, UpdateElevStatusch, OrderManagerchans.MatrixUpdatech)
 
   // Goroutines used in Network/Peers
   go peers.Transmitter(15789, strconv.Itoa(elevConfig.ElevID), SyncElevatorChans.TransmitEnable)

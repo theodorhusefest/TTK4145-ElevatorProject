@@ -25,21 +25,6 @@ func InitializeMatrix() [][]int {
 
 func Initialize(numFloors int, numElevators int) ([][]int, ElevConfig){
 
-
-  /*fmt.Print("Enter NumElevators: ")
-	_,err := fmt.Scanf("%d", &inp)
-  if(err!=nil){
-    fmt.Println("Error in input!")
-  }
-  conf.NumElevators = inp
-
-	fmt.Print("Enter NumFloors: ")
-  _,err=fmt.Scanf("%d", &inp)
-  if(err!=nil){
-    fmt.Println("Error in input!")
-  }
-  conf.NumFloors = inp
-*/
   var inp int
 	fmt.Print("Enter elevator ID: ")
   _ , err := fmt.Scanf("%d", &inp)
@@ -52,7 +37,7 @@ func Initialize(numFloors int, numElevators int) ([][]int, ElevConfig){
 
   elevatorMatrix := InitializeMatrix()
   elevatorMatrix[0][3*conf.ElevID] = conf.ElevID
-  elevatorMatrix[1][3*conf.ElevID] = 0                // Set state to Idle
+  elevatorMatrix[1][3*conf.ElevID] = int(IDLE)
   return elevatorMatrix, conf
 }
 

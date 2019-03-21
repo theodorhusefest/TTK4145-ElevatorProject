@@ -17,7 +17,7 @@ type FSMchannels struct{
   DoorTimeoutChan chan bool
 }
 
-func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateElevStatusch chan []Message, elevatorMatrix [][]int, elevatorConfig ElevConfig){
+func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateElevStatusch chan Message, elevatorMatrix [][]int, elevatorConfig ElevConfig){
 	elevator := Elevator{
 			ID: elevatorMatrix[0][elevatorConfig.ElevID*3],
 			State: IDLE,
@@ -32,7 +32,6 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
   for {
     select {
     case newLocalOrder := <- FSMchans.NewLocalOrderChan:
-			fmt.Println("he")
 
 			switch elevator.State {
 			case IDLE:
@@ -65,10 +64,8 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 				}
 			}
 
-			fmt.Println("End of IDLE")
-
-			updatedElev := []Message{{Select: 3, ID: elevator.ID ,State: int(elevator.State) ,Floor: elevator.Floor, Dir: elevator.Dir}}
-			UpdateElevStatusch <- updatedElev
+			updatedStates := Message{Select: UpdateStates, ID: elevator.ID ,State: int(elevator.State) ,Floor: elevator.Floor, Dir: elevator.Dir}
+			UpdateElevStatusch <- updatedStates
 
 
 
@@ -92,9 +89,8 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 
 			LocalOrderFinishedChan <- elevator.Floor
         }
-		updatedElev := []Message{{Select: 3, ID: elevator.ID ,State: int(elevator.State) ,Floor: elevator.Floor, Dir: elevator.Dir}}
-		UpdateElevStatusch <- updatedElev
-
+		updatedStates := Message{Select: UpdateStates, ID: elevator.ID ,State: int(elevator.State) ,Floor: elevator.Floor, Dir: elevator.Dir}
+		UpdateElevStatusch <- updatedStates
 
 		case <-doorOpenTimeOut.C:
 			fmt.Println("DOOROPEN")
@@ -112,23 +108,14 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 				orderManager.InsertState(elevatorConfig.ElevID, int(MOVING), elevatorMatrix)
 				fmt.Println(MOVING)
 			}
-			updatedElev := []Message{{Select: 3, ID: elevator.ID ,State: int(elevator.State) ,Floor: elevator.Floor, Dir: elevator.Dir}}
-			UpdateElevStatusch <- updatedElev
+			updatedStates := Message{Select: UpdateStates, ID: elevator.ID ,State: int(elevator.State) ,Floor: elevator.Floor, Dir: elevator.Dir}
+			UpdateElevStatusch <- updatedStates
     }
 
   }
 }
 
-func matrixIsEmpty(elevatorMatrix [][]int, elevatorConfig ElevConfig) bool{
-	for floor := 4; floor < 4+ NumFloors; floor++ {
-    for buttons := (elevatorConfig.ElevID*3); buttons < (elevatorConfig.ElevID*3 + 3); buttons++ {
-      if elevatorMatrix[floor][buttons] == 1 {
-        return false
-      }
-    }
-  }
-	return true
-}
+
 
 func isOrderAbove(ElevID int, currentFloor int, elevatorMatrix [][]int) bool {
 	if currentFloor == 3 {
