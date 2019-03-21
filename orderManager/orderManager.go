@@ -26,6 +26,7 @@ type OrderManagerChannels struct{
   UpdateElevatorChan chan []Message
   LocalOrderFinishedChan chan int
   UpdateElevStatusch chan []Message
+  PrintLiveMatrixCh chan string
 }
 
 
@@ -168,6 +169,18 @@ func OrderManager(OrderManagerChans OrderManagerChannels, NewGlobalOrderChan cha
     }
   }
 }
+
+
+func PrintLiveMatrix(input chan string) {
+  for {
+    select {
+    case <- input:
+      utilities.PrintMatrix(elevatorMatrix, elevatorConfig.NumFloors,elevatorConfig.NumElevators)
+
+    }
+  }
+}
+
 
 
 func updateOrdersInMatrix(newMatrix [][]int, oldMatrix [][]int, id int) [][]int {

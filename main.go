@@ -14,6 +14,7 @@ import (
   "time"
   "strconv"
   "flag"
+  "os/"
 )
 
 
@@ -53,8 +54,7 @@ func main() {
     PeerUpdate: make(chan peers.PeerUpdate),
     TransmitEnable: make(chan bool),
     BroadcastTicker: make(chan bool),
-    SendFullMatrixch: make(chan [][]int),
-    AskForMatrix: make(chan bool),
+    PrintLiveMatrixCh chan string,
   }
   var (
     NewGlobalOrderChan = make(chan ButtonEvent)
@@ -90,4 +90,8 @@ func main() {
   time.Sleep(10*time.Second)
 
   select{}
+
+
 }
+
+
