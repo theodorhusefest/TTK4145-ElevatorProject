@@ -104,7 +104,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 				InsertFloor(StateUpdate.ID, StateUpdate.Floor, elevatorMatrix)
 
 			case UpdateOffline:
-				InsertState(StateUpdate.ID, int(OFFLINE), elevatorMatrix)
+				InsertState(StateUpdate.ID, int(UNDEFINED), elevatorMatrix)
 
 			}
 

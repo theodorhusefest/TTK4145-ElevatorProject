@@ -12,7 +12,6 @@ type Elevator struct {
   State ElevState
   Floor int
   Dir   MotorDirection
-  IsDefined    bool
 }
 
 type MotorDirection int
@@ -39,10 +38,10 @@ type ButtonEvent struct {
 type ElevState int
 
 const (
-	IDLE     ElevState = 0
-	MOVING   ElevState = 1
-	DOOROPEN ElevState = 2
-	OFFLINE  ElevState = 3
+	IDLE     ElevState = iota
+	MOVING  
+	DOOROPEN 
+	UNDEFINED  
 )
 
 

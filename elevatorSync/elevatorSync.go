@@ -39,14 +39,11 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 				select {
 
 				case <-broadCastTicker.C:
-					fmt.Println("Sending Message")
 					syncChans.OutGoingMsg <- changeInOrder
 				}
 
 			case false:
-				fmt.Println("Recieved order offline")
 				for _, message := range changeInOrder {
-					fmt.Println("Type of message:", message.Select)
 					if !(message.Done) {
 						//SELECT = 1: NEW ORDER
 
@@ -147,17 +144,15 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 				if newID == elevator.ID && len(p.Peers) == 1 {
 					// You are alone on network (Either first or someone disappeard)
 					// do nothing
-					elevator.IsDefined = true
 					Online = true
 					fmt.Println("HEYO, I AM", newID, "AND IM FIRST")
 				} else if newID == elevator.ID && len(p.Peers) > 1 {
 					// Either been offline or first time online
 					// Ask for matrix
-					elevator.IsDefined = true
 					Online = true
 					fmt.Println("HEYO, I AM ", newID, "AND IM ONLINE")
 
-				} else if newID != elevator.ID && elevator.IsDefined {
+				} else if newID != elevator.ID && Online {
 					// Already online, send matrix to new
 
 					message := Message{Select: SendMatrix, ID: newID}
@@ -169,6 +164,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 				newID, _ := strconv.Atoi(peerLost)
 				if newID != elevator.ID {
 					// Someone else is offline
+          fmt.Println("We just lost: ", newID)
 					message := Message{Select: UpdateOffline, ID: newID}
 					UpdateElevStatusch <- message
 				} else {
