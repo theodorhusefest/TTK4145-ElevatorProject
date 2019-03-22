@@ -222,7 +222,7 @@ func InsertDirection(id int, dir MotorDirection, matrix [][]int) {
 func setLight(illuminateOrder Message, elevator Elevator) {
 	if illuminateOrder.ID == elevator.ID {
 		io.SetButtonLamp(illuminateOrder.Button, illuminateOrder.Floor, true)
-	} else if int(illuminateOrder.Button) == 2 {
+	} else if illuminateOrder.Button == BT_Cab {
 
 	} else {
 		io.SetButtonLamp(illuminateOrder.Button, illuminateOrder.Floor, true)
@@ -238,7 +238,6 @@ func clearLight(LocalOrderFinished int) {
 // FIKS
 // Trigg fsm hvis ordre ikke blir gjort
 // Button cab light
-// initialize lights
 // Ack
 // Bug med 2 knapper samtidig
 //

@@ -117,22 +117,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 				}
 			}
 
-			/*
-			   // Check if message has been processed.
-			   if !msgRecieved.Done {
-			     message := msgRecieved
-
-			     // If select = 1, new order was recieved.
-			     if message.Select == 1 {
-			       // Sett info inn på message
-			     }
-
-			   // Wait to everyone agree
-
-			   // Send message to local ordermanager*/
-			fmt.Println("Message Recievied")
-
-			//}
 
 		// --------------------------------------------------------------------------Case triggered by update in peers
 		case p := <-syncChans.PeerUpdate:
