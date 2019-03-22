@@ -6,16 +6,12 @@ import "net"
 import "fmt"
 import . "../Config"
 
-
-
 const _pollRate = 20 * time.Millisecond
 
 var _initialized bool = false
 var _numFloors int = 4
 var _mtx sync.Mutex
 var _conn net.Conn
-
-
 
 func Init(addr string, numFloors int) {
 	if _initialized {
@@ -30,11 +26,8 @@ func Init(addr string, numFloors int) {
 		panic(err.Error())
 	}
 
-		_initialized = true
+	_initialized = true
 }
-
-
-
 
 func SetMotorDirection(dir MotorDirection) {
 	_mtx.Lock()
@@ -65,8 +58,6 @@ func SetStopLamp(value bool) {
 	defer _mtx.Unlock()
 	_conn.Write([]byte{5, toByte(value), 0, 0})
 }
-
-
 
 func PollButtons(receiver chan<- ButtonEvent) {
 	prev := make([][3]bool, _numFloors)
@@ -120,8 +111,6 @@ func PollObstructionSwitch(receiver chan<- bool) {
 	}
 }
 
-
-
 func getButton(button ButtonType, floor int) bool {
 	_mtx.Lock()
 	defer _mtx.Unlock()
@@ -152,7 +141,6 @@ func getStop() bool {
 	_conn.Read(buf[:])
 	return toBool(buf[1])
 }
-
 
 func getObstruction() bool {
 	_mtx.Lock()
