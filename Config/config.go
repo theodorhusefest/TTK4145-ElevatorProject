@@ -84,3 +84,12 @@ type Message struct {
 	// Select = 6 Resend message
 
 }
+
+
+type AckStruct struct {
+	Data int
+	AwaitingAck [NumElevators]bool
+	RecievedAck [NumElevators]bool
+}
+
+

@@ -48,7 +48,7 @@ func main() {
 	SyncElevatorChans := syncElevator.SyncElevatorChannels{
 		OutGoingMsg:     make(chan []Message),
 		InCommingMsg:    make(chan []Message),
-		ChangeInOrderch: make(chan []Message),
+		ChangeInOrderch: make(chan []Message, 2),   // BUFFER ØKT TIL 2,UNNGÅR KRASJ MED 2 KNAPPER
 		PeerUpdate:      make(chan peers.PeerUpdate),
 		TransmitEnable:  make(chan bool),
 		BroadcastTicker: make(chan bool),

@@ -49,6 +49,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 		// -----------------------------------------------------------------------------------------------------Case triggered by local button
 		case NewGlobalOrder := <-NewGlobalOrderChan:
 
+
 			switch NewGlobalOrder.Button {
 
 			case BT_Cab:
@@ -68,14 +69,15 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 
 				// Send message to sync                //time.Sleep(10*time.Second)
 
+
 				ChangeInOrderch <- newHallOrders
 				/*
 				   // Wait for sync to say everyone knows the same
 				*/
+
 			}
 
 		case OrderUpdate := <-OrderManagerChans.UpdateOrderch:
-
 			switch OrderUpdate.Select {
 			case NewOrder:
 				localOrder := ButtonEvent{Floor: OrderUpdate.Floor, Button: OrderUpdate.Button}
@@ -256,7 +258,6 @@ func clearLight(LocalOrderFinished int) {
 }
 
 // FIKS
-// Trigg fsm hvis ordre ikke blir gjort
 // Button cab light
 // Ack
 // Bug med 2 knapper samtidig
