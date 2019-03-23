@@ -2,7 +2,7 @@ package orderManager
 
 import (
 	. "../Config"
-	//"../Utilities"
+	"../Utilities"
 	"../IO"
 	"../hallRequestAssigner"
 	"fmt"
@@ -31,8 +31,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 	NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,
 	OutGoingMsg chan []Message, ChangeInOrderch chan []Message, UpdateElevStatusch chan Message) {
 
-	GlobalOrderTimedOut := time.NewTimer(5 * time.Second)
-	GlobalOrderTimedOut.Stop()
+	GlobalOrderTimedOut := time.NewTicker(5 * time.Second)
 
 	for {
 		select {
@@ -139,8 +138,10 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 
 		// ------------------------------------------------------------------------------------------------------- Case triggered every 5 seconds to check if orders left
 		case <-GlobalOrderTimedOut.C:
+      utilities.PrintMatrix(elevatorMatrix, 4, 3)
 			fmt.Println("GlobalOrderTimedOut")
-			GlobalOrderTimedOut.Reset(5 * time.Second)
+      checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
+
 
 			// -------------------------------------------------------------------------------------------------------Case triggered by incomming update (New_order, order_done etc.)
 		}
@@ -157,20 +158,37 @@ func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message, C
       InsertFloor(message.ID, message.Floor, elevatorMatrix)
 
       OutMessage := []Message{message}
-      ChangeInOrderch <- OutMessage
+      if !message.Done {
+        ChangeInOrderch <- OutMessage
+      }
     }
   }
 }
 
-func ordersLeftInMatrix(elevatorMatrix [][]int, elevator Elevator) int {
-	for floor := 4; floor < 4+NumFloors; floor++ {
-		for buttons := (elevator.ID * 3); buttons < (elevator.ID*3 + 3); buttons++ {
-			if elevatorMatrix[floor][buttons] == 1 {
-				return floor
-			}
+func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderChan chan int) {
+	for floor := 0; floor < NumFloors; floor++ {
+		for button := 0; button < 3; button++ {
+      for elev := 0; elev < NumElevators; elev++ {
+        if elevatorMatrix[1][3*elev] == int(UNDEFINED) && elev != elevator.ID && button != 2 {
+            // check others matrix
+            if elevatorMatrix[len(elevatorMatrix)-floor - 1][button+elev*NumElevators] == 1 {
+              fmt.Println("Found order 1")
+              lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
+              addOrder(elevator.ID, elevatorMatrix, lostOrder)
+              //clearFloors(floor, elevatorMatrix, elev)
+              NewLocalOrderChan <- floor
+            }
+        } else if elevatorMatrix[1][3*elev] != int(UNDEFINED) && elev == elevator.ID  {
+            if elevatorMatrix[len(elevatorMatrix)-floor - 1][button+elev*NumElevators] == 1 {
+              fmt.Println("Found order 1")
+              lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
+              addOrder(elevator.ID, elevatorMatrix, lostOrder)
+              NewLocalOrderChan <- floor
+            }
+        }
+      }
 		}
 	}
-	return -1
 }
 
 func updateOrdersInMatrix(newMatrix [][]int, oldMatrix [][]int, id int) [][]int {

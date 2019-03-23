@@ -25,7 +25,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 
 	broadCastTicker := time.NewTicker(100 * time.Millisecond)
-	//online := false
 	for {
 		select {
 
@@ -48,7 +47,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 				for _, message := range changeInOrder {
 					if !(message.Done) {
 						//SELECT = 1: NEW ORDER
-
+            message.Done = true
 						switch message.Select {
 
 						case NewOrder:
@@ -71,8 +70,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 						case UpdatedMatrix:
 							MatrixUpdatech <- message
-
-							message.Done = true
 						}
 					}
 				}
@@ -90,6 +87,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 				if !(message.Done) {
 
 					fmt.Println(elevator.ID, "is recieving incomming message Type:", MessageType(message.Select), "from", message.ID)
+          message.Done = true
 					switch message.Select {
 
 					case NewOrder:
@@ -112,8 +110,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 					case UpdatedMatrix:
 						MatrixUpdatech <- message
-
-						message.Done = true
+	
 					}
 				}
 			}

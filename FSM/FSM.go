@@ -114,6 +114,10 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 			fmt.Println("Motor Failure")
 			elevator.State = UNDEFINED
 			orderManager.InsertState(elevator.ID, int(UNDEFINED), elevatorMatrix)
+			
+			fmt.Println("Sending status update")
+			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
+			UpdateElevStatusch <- updatedStates
 		}
 	}
 }
