@@ -175,7 +175,7 @@ func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderCha
               fmt.Println("Found order 1")
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
               addOrder(elevator.ID, elevatorMatrix, lostOrder)
-              //clearFloors(floor, elevatorMatrix, elev)
+              clearFloors(floor, elevatorMatrix, elev)
               NewLocalOrderChan <- floor
             }
         } else if elevatorMatrix[1][3*elev] != int(UNDEFINED) && elev == elevator.ID  {
