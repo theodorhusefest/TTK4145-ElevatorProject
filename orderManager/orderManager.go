@@ -84,7 +84,6 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 				setLight(OrderUpdate, elevator)
 				if OrderUpdate.ID == elevator.ID {
 					NewLocalOrderChan <- OrderUpdate.Floor
-					fmt.Println("Sending LocalOrder")
 				}
 
 			case OrderComplete:
@@ -94,6 +93,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 			}
 
 		case StateUpdate := <-UpdateElevStatusch:
+
 
 			switch StateUpdate.Select {
 			case UpdateStates:
@@ -147,6 +147,21 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 	}
 }
 
+func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message, ChangeInOrderch chan []Message) {
+  for {
+    select {
+    case message := <-UpdateElevStatusch:
+      InsertID(message.ID, elevatorMatrix)
+      InsertState(message.ID, message.State, elevatorMatrix)
+      InsertDirection(message.ID, message.Dir, elevatorMatrix)
+      InsertFloor(message.ID, message.Floor, elevatorMatrix)
+
+      OutMessage := []Message{message}
+      ChangeInOrderch <- OutMessage
+    }
+  }
+}
+
 func ordersLeftInMatrix(elevatorMatrix [][]int, elevator Elevator) int {
 	for floor := 4; floor < 4+NumFloors; floor++ {
 		for buttons := (elevator.ID * 3); buttons < (elevator.ID*3 + 3); buttons++ {
@@ -170,20 +185,7 @@ func updateOrdersInMatrix(newMatrix [][]int, oldMatrix [][]int, id int) [][]int 
 	return newMatrix
 }
 
-func UpdateElevStatus(elevatorMatrix [][]int, FSMUpdateElevStatusch chan Message, ChangeInOrderch chan []Message) {
-	for {
-		select {
-		case message := <-FSMUpdateElevStatusch:
-			InsertID(message.ID, elevatorMatrix)
-			InsertState(message.ID, message.State, elevatorMatrix)
-			InsertDirection(message.ID, message.Dir, elevatorMatrix)
-			InsertFloor(message.ID, message.Floor, elevatorMatrix)
 
-			OutMessage := []Message{message}
-			ChangeInOrderch <- OutMessage
-		}
-	}
-}
 
 func addOrder(id int, matrix [][]int, buttonPressed ButtonEvent) [][]int {
 	matrix[NumFloors+3-buttonPressed.Floor][id*NumElevators+int(buttonPressed.Button)] = 1

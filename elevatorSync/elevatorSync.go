@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+  //"../Utilities"
 )
 
 type SyncElevatorChannels struct {
@@ -22,7 +23,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 	Online := false
 
-	//  broadcastTicker(syncChans)
 
 	broadCastTicker := time.NewTicker(100 * time.Millisecond)
 	//online := false
@@ -33,16 +33,18 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 		case changeInOrder := <-syncChans.ChangeInOrderch:
 			//Håndter endring som kom fra ordermanager. Send alt inn på message og sett message.Done = false
 			//message := changeInOrder
+      //utilities.PrintMatrix(elevatorMatrix, 4,3)
 
-			switch Online {
-			case true:
+      if Online {
+
 				select {
-
 				case <-broadCastTicker.C:
+					//fmt.Println(elevator.ID, "is sending outgoing message ")
+
 					syncChans.OutGoingMsg <- changeInOrder
 				}
 
-			case false:
+			} else {
 				for _, message := range changeInOrder {
 					if !(message.Done) {
 						//SELECT = 1: NEW ORDER
@@ -84,11 +86,10 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 		// --------------------------------------------------------------------------Case triggered by bcast.Recieving
 		case msgRecieved := <-syncChans.InCommingMsg:
-			fmt.Println("Recieving Msg")
 			for _, message := range msgRecieved {
 				if !(message.Done) {
-					//SELECT = 1: NEW ORDER
 
+					fmt.Println(elevator.ID, "is recieving incomming message Type:", MessageType(message.Select), "from", message.ID)
 					switch message.Select {
 
 					case NewOrder:
@@ -117,11 +118,11 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 				}
 			}
 
-
 		// --------------------------------------------------------------------------Case triggered by update in peers
 		case p := <-syncChans.PeerUpdate:
 
-			fmt.Println("New peer: ", p.New)
+
+
 			if len(p.New) > 0 {
 				newID, _ := strconv.Atoi(p.New) // ID of new Peer
 
@@ -129,16 +130,15 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 					// You are alone on network (Either first or someone disappeard)
 					// do nothing
 					Online = true
-					fmt.Println("HEYO, I AM", newID, "AND IM FIRST")
+					fmt.Println( newID, "is online")
 				} else if newID == elevator.ID && len(p.Peers) > 1 {
 					// Either been offline or first time online
 					// Ask for matrix
 					Online = true
-					fmt.Println("HEYO, I AM ", newID, "AND IM ONLINE")
+					fmt.Println(newID, "is also online")
 
 				} else if newID != elevator.ID && Online {
 					// Already online, send matrix to new
-
 					message := Message{Select: SendMatrix, ID: newID}
 					MatrixUpdatech <- message
 				}
@@ -148,15 +148,16 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 				newID, _ := strconv.Atoi(peerLost)
 				if newID != elevator.ID {
 					// Someone else is offline
-          fmt.Println("We just lost: ", newID)
+					fmt.Println(newID, "is offline")
 					message := Message{Select: UpdateOffline, ID: newID}
 					UpdateElevStatusch <- message
 				} else {
+
 					Online = false
-					fmt.Println("I AM OFFLINE! BUT CHILL, I GOT THIS")
+					fmt.Println("I am offline")
 				}
 			}
-
 		}
 	}
 }
+

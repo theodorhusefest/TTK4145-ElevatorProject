@@ -61,13 +61,12 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 				fmt.Println("Motor has failed")
 
 			}
-
-
-
+			fmt.Println("Sending status update")
 			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
 			UpdateElevStatusch <- updatedStates
 
 		case currentFloor := <-FSMchans.ArrivedAtFloorChan:
+
 			orderManager.InsertFloor(elevator.ID, currentFloor, elevatorMatrix)
 			elevator.Floor = currentFloor
 			io.SetFloorIndicator(currentFloor)
@@ -86,7 +85,7 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 			} else if elevator.State != IDLE {
 				motorFailureTimeOut.Reset(5 * time.Second)
 			}
-
+			fmt.Println("Sending status update")
 			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
 			UpdateElevStatusch <- updatedStates
 
@@ -106,7 +105,8 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 				orderManager.InsertState(elevator.ID, int(MOVING), elevatorMatrix)
 				motorFailureTimeOut.Reset(5 * time.Second)
 			}
-
+			
+			fmt.Println("Sending status update")
 			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
 			UpdateElevStatusch <- updatedStates
 		

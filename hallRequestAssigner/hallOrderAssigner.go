@@ -2,7 +2,6 @@ package hallOrderAssigner
 
 import (
 	. "../Config"
-	"../Utilities"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -27,9 +26,6 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Messa
 	OrderInput.States = make(map[string]*HallAssignerElev)
 	var updatedOrders []Message
 	var hallRequests [NumFloors][2]bool
-
-	fmt.Println("In hallAssigner")
-	utilities.PrintMatrix(elevatorMatrix, NumFloors, NumElevators)
 
 	// Find all active orders in matrix
 	for floor := 0; floor < NumFloors; floor++ {
@@ -87,7 +83,7 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Messa
 	}
 
 	arg, _ := json.Marshal(OrderInput)
-	result, err := exec.Command("sh", "+x", "-c", "./MacHallAssigner -i'"+string(arg)+"'").Output()
+	result, err := exec.Command("sh", "+x", "-c", "./hallAssigner -i'"+string(arg)+"'").Output()
 	if err != nil {
 		fmt.Println("Error in Hall Request Assigner", err)
 	} else {
