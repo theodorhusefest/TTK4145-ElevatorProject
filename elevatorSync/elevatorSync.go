@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
-  //"../Utilities"
+  "../Utilities"
 )
 
 type SyncElevatorChannels struct {
@@ -49,7 +49,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 					//fmt.Println(elevator.ID, "is sending outgoing message ")
 					syncChans.OutGoingMsg <- changeInOrder
 				}
-			
+
 
 			} else {
 				for _, message := range changeInOrder {
@@ -116,7 +116,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 					case ACK:
 						message.Ack = false
 						//fmt.Println("ID: ", elevator.ID, " recieved ack: ", message, ", by: ", message.ID)
-						recievedAck := []Message{{Select: ACK, Done: false, ID: message.ID, Floor: message.Floor, Button: message.Button, State: message.State, 
+						recievedAck := []Message{{Select: ACK, Done: false, ID: message.ID, Floor: message.Floor, Button: message.Button, State: message.State,
 							Dir: message.Dir, Ack: message.Ack, ResendMatrix: message.ResendMatrix, Matrix: message.Matrix}}
 
 						addOrderToAck(AckMatrix, ResendMatrixAck, recievedAck, true)
@@ -129,10 +129,10 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 					case UpdatedMatrix:
 						MatrixUpdatech <- message
 						message.Ack = true
-	
+
 					}
 					if message.Ack && (message.ID == elevator.ID){
-						sendAck := []Message{{Select: ACK, Done: false, ID: message.ID, Floor: message.Floor, Button: message.Button, State: message.State, 
+						sendAck := []Message{{Select: ACK, Done: false, ID: message.ID, Floor: message.Floor, Button: message.Button, State: message.State,
 							Dir: message.Dir, Ack: message.Ack, ResendMatrix: message.ResendMatrix, Matrix: message.Matrix}}
 						//fmt.Println("ID: ", elevator.ID, " is sending ack: ", sendAck, " to: ", message.ID)
 						syncChans.ChangeInOrderch <- sendAck
@@ -140,8 +140,9 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 				}
 			}
 
-	
+
 		case <- ackTicker.C:
+			utilities.PrintAckMatrix(AckMatrix, NumFloors , NumElevators)
 			fmt.Println(AckMatrix)
 
 
@@ -213,7 +214,7 @@ func addOrderToAck (matrix [4+NumFloors][3*NumElevators]AckStruct, resendMatrixA
 					matrix[len(matrix) - message.Floor - 1][message.ID*3 + i].Data = 0
 					matrix[len(matrix) - message.Floor - 1][message.ID*3 + i].AwaitingAck[elev] = true
 					matrix[len(matrix) - message.Floor - 1][message.ID*3 + i].RecievedAck[elev] = false
-				} 
+				}
 
 			case UpdateStates:
 				matrix[1][message.ID*3].Data = message.State
