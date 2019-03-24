@@ -142,7 +142,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 
 		case <- ackTicker.C:
-			utilities.PrintAckMatrix(AckMatrix, NumFloors , NumElevators)
 			fmt.Println(AckMatrix)
 
 
