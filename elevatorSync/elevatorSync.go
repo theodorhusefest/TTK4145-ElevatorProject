@@ -238,127 +238,10 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 
 
-			/*for _, message := range msgRecieved {
+			/*WORKING WITHOUT ACK
+
+			for _, message := range msgRecieved {
 				if !(message.Done) {
-					// -------------------------------------------------
-					if message.SenderID != elevator.ID {
-						message.Done = true
-						switch message.Select {
-
-						case NewOrder:
-							if message.Ack {
-								addSingleAck(AckMatrix, ResendMatrixAck, message)
-								if checkAllAck(AckMatrix, ResendMatrixAck, message) {
-									UpdateOrderch <- message
-								}
-								message.Ack = false
-								fmt.Println("Incomming ack")
-							} else {
-								UpdateOrderch <- message
-								message.Ack = true
-							}
-
-
-						case OrderComplete:
-							UpdateOrderch <- message
-							message.Ack = true
-
-						case UpdateStates:
-							UpdateElevStatusch <- message
-							message.Ack = true
-
-						case UpdateOffline:
-							UpdateElevStatusch <- message
-							message.Ack = true
-
-						case ACK:
-							// If all RecievedAck is true, send to ordermanager
-							// Else, wait for the rest or ??resend??
-
-
-							addSingleAck(AckMatrix, ResendMatrixAck, message)
-							if checkAllAck(AckMatrix, ResendMatrixAck, message) {
-								UpdateOrderch <- message
-							}
-							message.Ack = false
-							fmt.Println("Added for someone else")
-							//utilities.PrintAckMatrix(AckMatrix, NumFloors , NumElevators)
-
-
-							//if (message.ID != elevator.ID) {
-								//fmt.Println("ID: ", elevator.ID, " recieved ack from: ", message.ID)
-								//recievedAck := []Message{{Select: ACK, Done: false, ID: message.ID, Floor: message.Floor, Button: message.Button, State: message.State,
-									//Dir: message.Dir, Ack: message.Ack, ResendMatrix: message.ResendMatrix, Matrix: message.Matrix}}
-							//}
-
-						case SendMatrix:
-							if message.Ack {
-								addSingleAck(AckMatrix, ResendMatrixAck, message)
-								if checkAllAck(AckMatrix, ResendMatrixAck, message) {
-									UpdateOrderch <- message
-								}
-								message.Ack = false
-							} else {
-								MatrixUpdatech <- message
-								message.Ack = true
-							}
-
-
-
-
-							//MatrixUpdatech <- message
-							//message.Ack = true
-
-
-						case UpdatedMatrix:
-							if message.Ack {
-								addSingleAck(AckMatrix, ResendMatrixAck, message)
-								if checkAllAck(AckMatrix, ResendMatrixAck, message) {
-									UpdateOrderch <- message
-								}
-								message.Ack = false
-							} else {
-								MatrixUpdatech <- message
-								message.Ack = true
-							}
-
-
-
-							//MatrixUpdatech <- message
-							//message.Ack = true
-
-						}
-
-					} else {
-						message.Done = true
-						switch message.Select {
-						case ACK:
-							addSingleAck(AckMatrix, ResendMatrixAck, message)
-							if checkAllAck(AckMatrix, ResendMatrixAck, message) {
-								UpdateOrderch <- message
-							}
-							message.Ack = false
-							fmt.Println("Added for me")
-							//utilities.PrintAckMatrix(AckMatrix, NumFloors , NumElevators)
-							
-
-						}
-					}
-					
-					if message.Ack && (message.SenderID != elevator.ID) {
-						// Make an ACK msg, and send
-						sendAck := []Message{{Select: message.Select, Done: false, SenderID: elevator.ID, ID: message.ID, Floor: message.Floor, Button: message.Button, 
-							State: message.State, Dir: message.Dir, Ack: true, ResendMatrix: message.ResendMatrix, Matrix: message.Matrix}}
-						syncChans.ChangeInOrderch <- sendAck
-
-
-					} // ----------------------------------------------------
-
-
-
-
-
-  WORKING WITHOUT ACK
 					message.Done = true
 					switch message.Select {
 
@@ -419,14 +302,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 						syncChans.ChangeInOrderch <- sendAck
 
 						// If you have recieved an order, do it and set ack to true. Send ack back
-
 					}
-
-
-
-
-
-
 				}
 			}*/
 
