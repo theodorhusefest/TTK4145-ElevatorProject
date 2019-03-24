@@ -26,6 +26,8 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 		select {
 		case newLocalOrder := <-FSMchans.NewLocalOrderChan:
 
+	
+
 			switch elevator.State {
 			case IDLE:
 
@@ -210,3 +212,14 @@ func shouldStop(id int, elevator Elevator, elevatorMatrix [][]int) bool {
 	}
 	return false
 }
+
+
+
+
+
+
+
+
+
+
+

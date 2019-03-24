@@ -2,7 +2,7 @@ package orderManager
 
 import (
 	. "../Config"
-	//"../Utilities"
+//	"../Utilities"
 	"../IO"
 	"../hallRequestAssigner"
 	"fmt"
@@ -88,6 +88,8 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 				addOrder(OrderUpdate.ID, elevatorMatrix, localOrder)
 				setLight(OrderUpdate, elevator)
 				if OrderUpdate.ID == elevator.ID {
+					fmt.Println("I take it")
+					fmt.Println("State1", elevatorMatrix[1][1], "State2", elevatorMatrix[1][3], "State3", elevatorMatrix[1][6])
 					NewLocalOrderChan <- OrderUpdate.Floor
 				}
 
@@ -132,7 +134,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 
 			// Update message to be sent to everyone. Select = 2 for order done
 
-			outMessage := []Message{{Select: OrderComplete, Done: false, ID: elevator.ID, Floor: LocalOrderFinished}}
+			outMessage := []Message{{Select: OrderComplete, SenderID: elevator.ID, Done: false, ID: elevator.ID, Floor: LocalOrderFinished}}
 
 			// Send message to sync
 			ChangeInOrderch <- outMessage
@@ -180,7 +182,9 @@ func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderCha
               fmt.Println("Found order 1")
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
               addOrder(elevator.ID, elevatorMatrix, lostOrder)
-              clearFloors(floor, elevatorMatrix, elev)
+              //clearFloors(floor, elevatorMatrix, elev) ????????
+              fmt.Println("Driving from lostOrder1")
+              fmt.Println("State1", elevatorMatrix[1][1], "State2", elevatorMatrix[1][3], "State3", elevatorMatrix[1][6])
               NewLocalOrderChan <- floor
             }
         } else if elevatorMatrix[1][3*elev] != int(UNDEFINED) && elev == elevator.ID  {
@@ -188,6 +192,8 @@ func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderCha
               fmt.Println("Found order 1")
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
               addOrder(elevator.ID, elevatorMatrix, lostOrder)
+              fmt.Println("Driving from lostOrder2")
+              fmt.Println("State1", elevatorMatrix[1][1], "State2", elevatorMatrix[1][3], "State3", elevatorMatrix[1][6])
               NewLocalOrderChan <- floor
             }
         }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
-  //"../Utilities"
+ // "../Utilities"
 )
 
 type SyncElevatorChannels struct {
@@ -24,6 +24,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 	Online := false
 	AckMatrix := [4+NumFloors][3*NumElevators]AckStruct{}
 	ResendMatrixAck := AckStruct{}
+
 
 
 	broadCastTicker := time.NewTicker(100 * time.Millisecond)
@@ -47,13 +48,24 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
       			for _, message := range changeInOrder {
       				if !message.Ack {
-      					addAck(AckMatrix, ResendMatrixAck, changeInOrder, 1)
+      					for elev := 0; elev < NumElevators; elev++ {
+        					switch message.Select {
+      						case NewOrder:
+      							AckMatrix[len(AckMatrix) - message.Floor - 1][message.SenderID*3 + int(message.Button)].AwaitingAck[elev] = true
+							case OrderComplete:
+								AckMatrix[len(AckMatrix) - message.Floor - 1][message.SenderID*3 + int(message.Button)].AwaitingAck[elev] = true
+							case UpdateStates:
+								AckMatrix[1][message.SenderID*3].AwaitingAck[elev] = true
+							case UpdatedMatrix:
+								ResendMatrixAck.AwaitingAck[elev] = true
+							}    						
       					}
-      			}
+      				}
+      			}	
 				select {
 				case <-broadCastTicker.C:
-					//fmt.Println(elevator.ID, "is sending outgoing message ")
-					syncChans.OutGoingMsg <- changeInOrder
+				//fmt.Println(elevator.ID, "is sending outgoing message ")
+				syncChans.OutGoingMsg <- changeInOrder
 				}
 
 
@@ -98,125 +110,115 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 			for _, message := range msgRecieved {
 				if !(message.Done) {
+					
+					// Lag en lokal struct
 					sendAck := Message{Select: message.Select, Done: false, SenderID: elevator.ID, ID: message.ID, Floor: message.Floor, Button: message.Button, 
 						State: message.State, Dir: message.Dir, Ack: message.Ack, ResendMatrix: message.ResendMatrix, Matrix: message.Matrix}
+					
+					// Du har ikke sendt mld som kom inn. Send Ack tilbake og execute
 					if message.SenderID != elevator.ID {
-
-						// Mottatt melding fra noen andre
-						// if: Ack == true
-							// --> Legg til i matrise
-							// Hvis alle er lagt til, utfør ordren. Sett awaiting hos alle til false
-								// Hvis ikke, vent til alle ha sendt ack evt resend ordre
-						// else: ny ordre
-							// Utfør ordre
-							// Lag en ackMsg og send tilbake
 
 						message.Done = true
 
 						switch message.Select {
-							case NewOrder:
-								if message.Ack {
-									sendAck.Ack = false
-									addSingleAck(AckMatrix, ResendMatrixAck, message)								
-									if !checkAck(AckMatrix, ResendMatrixAck, message) {
-										UpdateOrderch <- message
-									}
-								} else {
-								sendAck.Ack = true
-								UpdateOrderch <- message
-								}
-
-							case OrderComplete:
-								if message.Ack {
-									sendAck.Ack = false
-									addSingleAck(AckMatrix, ResendMatrixAck, message)
-									if !checkAck(AckMatrix, ResendMatrixAck, message) {
-										UpdateOrderch <- message
-									}
-								} else {
-								sendAck.Ack = true
-								UpdateOrderch <- message
-								}
-
-							case UpdateStates:
-								if message.Ack {
-									sendAck.Ack = false
-									addSingleAck(AckMatrix, ResendMatrixAck, message)
-									if !checkAck(AckMatrix, ResendMatrixAck, message) {
-										UpdateElevStatusch <- message
-									}
-								} else {
-								sendAck.Ack = true
-								UpdateElevStatusch <- message
-								}
-
-							case UpdateOffline:
-							case ACK:
-							case SendMatrix:
-
-							case UpdatedMatrix:
-								if message.Ack {
-									sendAck.Ack = false
-									addSingleAck(AckMatrix, ResendMatrixAck, message)
-									if !checkAck(AckMatrix, ResendMatrixAck, message) {
-										MatrixUpdatech <- message
-									}
-								} else {
-								sendAck.Ack = true
-								MatrixUpdatech <- message
-								}
-
-
-						} 
-					} else {
-							// Mottatt melding fra deg selv
-							// if: Ack == true
-								// --> Legg til i matrise
-								// Hvis alle er lagt til, utfør ordren
-						// Skal ikke send noen ack tilbake
-						sendAck.Ack = false
-
-						switch message.Select {
 						case NewOrder:
 							if message.Ack {
-								addSingleAck(AckMatrix, ResendMatrixAck, message)
-								if !checkAck(AckMatrix, ResendMatrixAck, message) {
+								sendAck.Ack = false
+								AckMatrix[len(AckMatrix) - message.Floor - 1][message.ID*3 + int(message.Button)].AwaitingAck[message.SenderID] = false
+								// Hvis alle har sendt ack: kjør
+								allReady := true
+								for elev := 0; elev < NumElevators; elev++ {
+									if AckMatrix[len(AckMatrix) - message.Floor - 1][message.ID*3 + int(message.Button)].AwaitingAck[elev] == true {
+										allReady = false
+									}
+								}
+								
+								if allReady {
+									//fmt.Println("Someone else, all acked", message)
 									UpdateOrderch <- message
 								}
-							} 
-
+							} else { //Send ack tilbake og execute
+									sendAck.Ack = true
+									//fmt.Println("Someone else, not an ack", message)
+									UpdateOrderch <- message
+							}
+							
+						// Samme som NewOrder
 						case OrderComplete:
 							if message.Ack {
-								addSingleAck(AckMatrix, ResendMatrixAck, message)
-								if !checkAck(AckMatrix, ResendMatrixAck, message) {
-									UpdateOrderch <- message									
+								sendAck.Ack = false
+								AckMatrix[len(AckMatrix) - message.Floor - 1][message.ID*3 + int(message.Button)].AwaitingAck[message.SenderID] = false
+								allReady := true
+								for elev := 0; elev < NumElevators; elev++ {
+									if AckMatrix[len(AckMatrix) - message.Floor - 1][message.ID*3 + int(message.Button)].AwaitingAck[elev] == true {
+										allReady = false
+									}
 								}
-							} 
+								if allReady {
+									UpdateOrderch <- message
+								}
+							} else {
+									sendAck.Ack = true
+									UpdateOrderch <- message
+							}
+
+
 
 						case UpdateStates:
-							if message.Ack {
-								addSingleAck(AckMatrix, ResendMatrixAck, message)
-								if !checkAck(AckMatrix, ResendMatrixAck, message) {
-									UpdateElevStatusch <- message
-								}
-							} 
-
 						case UpdateOffline:
 						case ACK:
 						case SendMatrix:
-						
 						case UpdatedMatrix:
-							if message.Ack {
-								addSingleAck(AckMatrix, ResendMatrixAck, message)
-								if !checkAck(AckMatrix, ResendMatrixAck, message) {
-									MatrixUpdatech <- message
+						} 
+
+
+
+					} else { // Du har sendt meldingen som kom inn. Legg til i AckMatrix. Sjekk om du har fått ack fra alle, isåfall utfør
+
+						sendAck.Ack = false
+						message.Done = true
+						switch message.Select {
+						case NewOrder:
+								// Add to matrix, check if everyone has given ack. If so, run, if not, do nothing.
+								AckMatrix[len(AckMatrix) - message.Floor - 1][message.ID*3 + int(message.Button)].AwaitingAck[message.SenderID] = false
+								allReady := true
+								for elev := 0; elev < NumElevators; elev++ {
+									if AckMatrix[len(AckMatrix) - message.Floor - 1][message.ID*3 + int(message.Button)].AwaitingAck[elev] == true {
+										allReady = false
+									}
 								}
-							} 
+								if allReady {
+									//fmt.Println("Myself, all acked ", message)
+									UpdateOrderch <- message
+								}
+
+						case OrderComplete:
+								// Add to matrix, check if everyone has given ack. If so, run, if not, do nothing.
+								AckMatrix[len(AckMatrix) - message.Floor - 1][message.ID*3 + int(message.Button)].AwaitingAck[message.SenderID] = false
+								allReady := true
+								for elev := 0; elev < NumElevators; elev++ {
+									if AckMatrix[len(AckMatrix) - message.Floor - 1][message.ID*3 + int(message.Button)].AwaitingAck[elev] == true {
+										allReady = false
+									}
+								}
+								if allReady {
+									UpdateOrderch <- message
+								}
+
+						case UpdateStates:
+						case UpdateOffline:
+						case ACK:
+						case SendMatrix:
+						case UpdatedMatrix:
+
 						} 
 					}
 					if sendAck.Ack {
 						OutAck := []Message{{Select: sendAck.Select, Done: false, SenderID: elevator.ID, ID: sendAck.ID, Floor: sendAck.Floor, Button: sendAck.Button, 
-							State: sendAck.State, Dir: sendAck.Dir, Ack: sendAck.Ack, ResendMatrix: sendAck.ResendMatrix, Matrix: sendAck.Matrix}}
+							State: sendAck.State, Dir: sendAck.Dir, Ack: true, ResendMatrix: sendAck.ResendMatrix, Matrix: sendAck.Matrix}}
+						
+						// Send ACK 
+						//fmt.Println("Outgoing ack", OutAck)
 						syncChans.ChangeInOrderch <- OutAck
 					}
 				}
@@ -237,9 +239,9 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 
 
-
-			/*WORKING WITHOUT ACK
-
+			/*
+			//WORKING WITHOUT ACK
+		case msgRecieved := <-syncChans.InCommingMsg:
 			for _, message := range msgRecieved {
 				if !(message.Done) {
 					message.Done = true
@@ -308,6 +310,21 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 		
 		case <- ackTicker.C:
+
+
+			for i := 0; i < 4+NumFloors; i++ {
+				for j := 0; j < 3*NumElevators; j++ {
+					for k := 0; k < NumElevators; k++ {
+						if AckMatrix[i][j].AwaitingAck[k] == true {
+							//resend package
+							//fmt.Println("Resend package")
+						}
+					}
+				}
+			}
+
+
+
 			//fmt.Println(AckMatrix)
 			//utilities.PrintAckMatrix(AckMatrix, NumFloors , NumElevators)
 
@@ -401,12 +418,13 @@ func addAck (matrix [4+NumFloors][3*NumElevators]AckStruct, resendMatrixAck AckS
 	}
 }
 
+
+
+
 func addSingleAck(matrix [4+NumFloors][3*NumElevators]AckStruct, resendMatrixAck AckStruct, message Message) {
 	switch message.Select {
 		case NewOrder:
-			matrix[len(matrix) - message.Floor - 1][message.SenderID*3 + int(message.Button)].AwaitingAck[message.SenderID] = false
-			fmt.Println("Setting (", len(matrix) - message.Floor - 1, ", ", message.SenderID*3 + int(message.Button), ") to false")
-			fmt.Println(message.ID*3)
+			matrix[0][0].Data = 1
 
 		case OrderComplete:
 			matrix[len(matrix) - message.Floor - 1][message.SenderID*3 + int(message.Button)].AwaitingAck[message.SenderID] = false
@@ -435,7 +453,6 @@ func checkAck(matrix [4+NumFloors][3*NumElevators]AckStruct, resendMatrixAck Ack
 		switch message.Select {
 		case NewOrder:
 			if (matrix[len(matrix) - message.Floor - 1][message.SenderID*3 + int(message.Button)].AwaitingAck[elev] == true) {
-				fmt.Println("awaiting")
 				awaiting = true
 			}
 
