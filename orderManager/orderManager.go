@@ -2,7 +2,7 @@ package orderManager
 
 import (
 	. "../Config"
-	"../Utilities"
+	//"../Utilities"
 	"../IO"
 	"../hallRequestAssigner"
 	"fmt"
@@ -90,7 +90,6 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 			case OrderComplete:
 				clearFloors(OrderUpdate.Floor, elevatorMatrix, OrderUpdate.ID)
 				clearLight(OrderUpdate.Floor)
-
 			}
 
 		case StateUpdate := <-UpdateElevStatusch:
@@ -140,9 +139,9 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 
 		// ------------------------------------------------------------------------------------------------------- Case triggered every 5 seconds to check if orders left
 		case <-GlobalOrderTimedOut.C:
-      utilities.PrintMatrix(elevatorMatrix, 4, 3)
-			fmt.Println("GlobalOrderTimedOut")
-      checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
+      		//utilities.PrintMatrix(elevatorMatrix, 4, 3)
+			fmt.Println("Checking for lost orders")
+      		checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
 
 
 			// -------------------------------------------------------------------------------------------------------Case triggered by incomming update (New_order, order_done etc.)

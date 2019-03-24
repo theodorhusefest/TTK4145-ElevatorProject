@@ -25,10 +25,9 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 	AckMatrix := [4+NumFloors][3*NumElevators]AckStruct{}
 	ResendMatrixAck := AckStruct{}
 
-	AckMatrix[0][0].Data = 1
 
 	broadCastTicker := time.NewTicker(100 * time.Millisecond)
-	ackTicker := time.NewTicker(100 * time.Millisecond)
+	ackTicker := time.NewTicker(10000 * time.Millisecond)
 	for {
 		select {
 
@@ -39,7 +38,12 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
       //utilities.PrintMatrix(elevatorMatrix, 4,3)
 
       if Online {
-				addOrderToAck(AckMatrix, ResendMatrixAck, changeInOrder)
+      			for _, message := range changeInOrder {
+      				if !message.Ack {
+      					addOrderToAck(AckMatrix, ResendMatrixAck, changeInOrder, false)
+      					fmt.Println("Order added to AckMatrix")
+      					}
+      			}
 				select {
 				case <-broadCastTicker.C:
 					//fmt.Println(elevator.ID, "is sending outgoing message ")
@@ -50,7 +54,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 			} else {
 				for _, message := range changeInOrder {
 					if !(message.Done) {
-						//SELECT = 1: NEW ORDER
             			message.Done = true
 						switch message.Select {
 
@@ -67,7 +70,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 							UpdateElevStatusch <- message
 
 						case ACK:
-							// ACKNOWLEDGE
+							// Not online, cannot send ack
 
 						case SendMatrix:
 							MatrixUpdatech <- message
@@ -86,7 +89,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 		// --------------------------------------------------------------------------Case triggered by bcast.Recieving
 		case msgRecieved := <-syncChans.InCommingMsg:
-
 
 			for _, message := range msgRecieved {
 				if !(message.Done) {
@@ -112,7 +114,12 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 						message.Ack = true
 
 					case ACK:
-						fmt.Println("Ack recieved by: ", message.ID)
+						message.Ack = false
+						//fmt.Println("ID: ", elevator.ID, " recieved ack: ", message, ", by: ", message.ID)
+						recievedAck := []Message{{Select: ACK, Done: false, ID: message.ID, Floor: message.Floor, Button: message.Button, State: message.State, 
+							Dir: message.Dir, Ack: message.Ack, ResendMatrix: message.ResendMatrix, Matrix: message.Matrix}}
+
+						addOrderToAck(AckMatrix, ResendMatrixAck, recievedAck, true)
 
 					case SendMatrix:
 						MatrixUpdatech <- message
@@ -124,11 +131,10 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 						message.Ack = true
 	
 					}
-					if message.Ack {
-						sendAck := []Message{{Select: ACK, Done: message.Done, ID: message.ID, Floor: message.Floor, Button: message.Button, State: message.State, 
+					if message.Ack && (message.ID == elevator.ID){
+						sendAck := []Message{{Select: ACK, Done: false, ID: message.ID, Floor: message.Floor, Button: message.Button, State: message.State, 
 							Dir: message.Dir, Ack: message.Ack, ResendMatrix: message.ResendMatrix, Matrix: message.Matrix}}
-						fmt.Println("Sending Ack")
-						//syncChans.OutGoingMsg <- sendAck // Lag til en array
+						//fmt.Println("ID: ", elevator.ID, " is sending ack: ", sendAck, " to: ", message.ID)
 						syncChans.ChangeInOrderch <- sendAck
 					}
 				}
@@ -136,7 +142,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 	
 		case <- ackTicker.C:
-
+			fmt.Println(AckMatrix)
 
 
 
@@ -187,16 +193,20 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 
 
-func addOrderToAck (matrix [4+NumFloors][3*NumElevators]AckStruct, resendMatrixAck AckStruct, messages []Message) {
+func addOrderToAck (matrix [4+NumFloors][3*NumElevators]AckStruct, resendMatrixAck AckStruct, messages []Message, addSingleElement bool) {
 	for _, message := range messages {
 
 		for elev := 0; elev < NumElevators; elev++ {
 			switch message.Select {
 
 			case NewOrder:
-				matrix[len(matrix) - message.Floor - 1][message.ID*3 + int(message.Button)].Data = 1
-				matrix[len(matrix) - message.Floor - 1][message.ID*3 + int(message.Button)].AwaitingAck[elev] = true
-				matrix[len(matrix) - message.Floor - 1][message.ID*3 + int(message.Button)].RecievedAck[elev] = false
+				if addSingleElement {
+					matrix[len(matrix) - message.Floor - 1][message.ID*3 + int(message.Button)].RecievedAck[message.ID] = true
+					} else {
+					matrix[len(matrix) - message.Floor - 1][message.ID*3 + int(message.Button)].Data = 1
+					matrix[len(matrix) - message.Floor - 1][message.ID*3 + int(message.Button)].AwaitingAck[elev] = true
+					matrix[len(matrix) - message.Floor - 1][message.ID*3 + int(message.Button)].RecievedAck[elev] = false
+					}
 
 			case OrderComplete:
 				for i := 0; i < 3; i++ {
