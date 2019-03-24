@@ -20,7 +20,7 @@ type HallAssignerInput struct {
 	States       map[string]*HallAssignerElev `json:"states"`
 }
 
-func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Message {
+func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int, elevator Elevator) []Message {
 
 	OrderInput := HallAssignerInput{}
 	OrderInput.States = make(map[string]*HallAssignerElev)
@@ -95,7 +95,7 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int) []Messa
 			for floor := 0; floor < NumFloors; floor++ {
 				for button := 0; button < 2; button++ {
 					if orders[floor][button] == true && elevatorMatrix[len(elevatorMatrix)-floor-1][button+ElevIDint*NumElevators] == 0 {
-						newOrder := Message{Select: 1, ID: ElevIDint, Floor: floor, Button: ButtonType(button)}
+						newOrder := Message{Select: 1, SenderID: elevator.ID, ID: ElevIDint, Floor: floor, Button: ButtonType(button)}
 						updatedOrders = append(updatedOrders, newOrder)
 					}
 				}

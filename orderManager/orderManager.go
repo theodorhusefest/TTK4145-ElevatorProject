@@ -54,9 +54,9 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 
 			case BT_Cab:
 
-				outMessage := []Message{{Select: NewOrder, Done: false, ID: elevator.ID, Floor: NewGlobalOrder.Floor, Button: NewGlobalOrder.Button}}
+				outMessage := []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: elevator.ID, Floor: NewGlobalOrder.Floor, Button: NewGlobalOrder.Button}}
 				// Send message to sync
-
+				fmt.Println("NewCabOrder = ", outMessage)
 				ChangeInOrderch <- outMessage
 
 				// addOrder(elevator.ID, elevatorMatrix, NewGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
@@ -64,10 +64,14 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 
 			default:
 
-				newHallOrders := hallOrderAssigner.AssignHallOrder(NewGlobalOrder, elevatorMatrix)
-				fmt.Println()
+				newHallOrders := hallOrderAssigner.AssignHallOrder(NewGlobalOrder, elevatorMatrix, elevator)
+
 
 				// Send message to sync                //time.Sleep(10*time.Second)
+
+	
+				fmt.Println("NewHallOrder = ", newHallOrders)
+
 
 
 				ChangeInOrderch <- newHallOrders

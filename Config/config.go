@@ -64,6 +64,8 @@ type Message struct {
 	// Message.Done = true: Message has been processed
 	Done bool
 
+	SenderID int
+
 	// Select = 1: NEW ORDER
 	// Select = 2: AN ORDER HAS BEEN EXCECUTED
 	ID     int
