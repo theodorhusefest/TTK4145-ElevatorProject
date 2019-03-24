@@ -27,7 +27,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 
 	broadCastTicker := time.NewTicker(100 * time.Millisecond)
-	ackTicker := time.NewTicker(10000 * time.Millisecond)
+	ackTicker := time.NewTicker(20000 * time.Millisecond)
 	for {
 		select {
 
@@ -142,7 +142,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 	
 		case <- ackTicker.C:
-			fmt.Println(AckMatrix)
+			//fmt.Println(AckMatrix)
 
 
 
