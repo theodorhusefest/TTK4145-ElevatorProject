@@ -126,7 +126,8 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 				if MatrixUpdate.ID == elevator.ID {
 					fmt.Println("Resetting matrix")
 					elevatorMatrix = updateOrdersInMatrix(elevatorMatrix, MatrixUpdate.Matrix, MatrixUpdate.ID)
-					outMessage := []Message{{Select:UpdateStates ,ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}}
+					outMessage := []Message{{Select:UpdateStates ,ID: elevator.ID, State: int(elevator.State), Floor: elevatorMatrix[2][elevator.ID*3], Dir: elevator.Dir}}
+					fmt.Println("Elev", elevator)
 					ChangeInOrderch <- outMessage
 				}
 			}
@@ -211,7 +212,6 @@ func updateOrdersInMatrix(newMatrix [][]int, oldMatrix [][]int, id int) [][]int 
 			if j != 3*id || i > 3 {
 				newMatrix[i][j] = oldMatrix[i][j]
 			}
-
 		}
 	}
 	return newMatrix

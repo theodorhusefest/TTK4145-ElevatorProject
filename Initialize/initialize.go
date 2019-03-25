@@ -3,17 +3,22 @@ package initialize
 import (
 	. "../Config"
 	"../IO"
+	"../Utilities"
 	"fmt"
 )
 
 
 //function which puts the posistion of elevator ID into the elevator matrix.
 //if elevator is not on a floor, the elevator moves downwards until it hits a sensor
-func InitElevator(elev Elevator, matrix [][]int, channelFloor chan int) {
+func InitElevator(elevator Elevator, matrix [][]int, channelFloor chan int) {
 
 	io.SetMotorDirection(DIR_Down)                  //elevator goes downwards
-	go io.PollFloorSensor(channelFloor)       //the floor is put onto channelFloor
-	matrix[2][elev.ID*3] = <-channelFloor //channelFloor is stored in matrix
+	go io.PollFloorSensor(channelFloor)
+	currentFloor := <- channelFloor      //the floor is put onto channelFloor
+	fmt.Println(currentFloor)
+	matrix[2][elevator.ID*3] = currentFloor  //channelFloor is stored in matrix
+	utilities.PrintMatrix(matrix,4,3)
+	elevator.Floor = currentFloor
 	io.SetMotorDirection(DIR_Stop)                   //elevator stops
 	InitLights()
 
@@ -66,5 +71,3 @@ func AssignIDs(matrix [][]int) {
 		id++
 	}
 }
-
-

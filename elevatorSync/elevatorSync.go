@@ -77,7 +77,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 						case NewOrder:
 							UpdateOrderch <- message
-							fmt.Println("UpdateOrderch 4")
 
 						case OrderComplete:
 							UpdateOrderch <- message
@@ -135,7 +134,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 
 								if allReady {
 									//fmt.Println("Someone else, all acked", message)
-									fmt.Println("UpdateOrderch 1")
 									fmt.Println(message)
 									UpdateOrderch <- message
 								}
@@ -143,7 +141,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 							} else { //Send ack tilbake og execute
 								sendAck.Ack = true
 								//fmt.Println("Someone else, not an ack", message)
-								fmt.Println("UpdateOrderch 2")
 								UpdateOrderch <- message
 							}
 
@@ -167,7 +164,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 							}
 
 						case UpdateStates:
-							fmt.Println("----------")
 							sendAck.Ack = false
 							UpdateOfflinech <- message
 							/*	if message.Ack {
@@ -254,7 +250,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 							}
 							if allReady {
 								//fmt.Println("Myself, all acked ", message)
-								fmt.Println("UpdateOrderch 3")
 								fmt.Println(message)
 								UpdateOrderch <- message
 							}
@@ -273,7 +268,6 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 							}
 
 						case UpdateStates:
-							fmt.Println("--")
 							UpdateOfflinech <- message
 							/*AckMatrix[1][message.ID*3].AwaitingAck[message.SenderID] = false
 							// Hvis alle har sendt ack: kjør

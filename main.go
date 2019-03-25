@@ -4,7 +4,7 @@ import (
 	//  "fmt"
 	. "./Config"
 	"./Initialize"
-	//"./Utilities"
+	"./Utilities"
 	"./FSM"
 	"./IO"
 	"./Network/network/bcast"
@@ -63,7 +63,7 @@ func main() {
 	//elevatorMatrix := initialize.InitializeMatrix(NumFloors,NumElevators)  // Set up matrix, add ID
 	initialize.InitElevator(elevConfig, elevatorMatrix, channelFloor) // Move elevator to nearest floor and update matrix
 
-	//utilities.PrintMatrix(elevatorMatrix, elevConfig.NumFloors,elevConfig.NumElevators)
+	utilities.PrintMatrix(elevatorMatrix, elevConfig.NumFloors,elevConfig.NumElevators)
 
 	// Goroutines used in FSM
 	go io.PollFloorSensor(FSMchans.ArrivedAtFloorChan)
