@@ -150,8 +150,8 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 		case <-GlobalOrderTimedOut.C:
       		utilities.PrintMatrix(elevatorMatrix, 4, 3)
 
-			fmt.Println("Checking for lost orders")
-      		//checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
+					fmt.Println("Checking for lost orders")
+      		checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
 
 
 			// -------------------------------------------------------------------------------------------------------Case triggered by incomming update (New_order, order_done etc.)
