@@ -56,6 +56,7 @@ func main() {
 	var (
 		NewGlobalOrderChan = make(chan ButtonEvent)
 		UpdateElevStatusch = make(chan Message)
+		UpdateOfflinech = make(chan Message)
 	)
 
 	channelFloor := make(chan int) //channel that is used in InitElevator. Should maybe have a struct with channels?
@@ -71,12 +72,12 @@ func main() {
 	// Goroutines used in OrderManager
 	go io.PollButtons(NewGlobalOrderChan)
 	go orderManager.OrderManager(elevatorMatrix, elevConfig, OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, SyncElevatorChans.OutGoingMsg,
-		SyncElevatorChans.ChangeInOrderch, UpdateElevStatusch)
+		SyncElevatorChans.ChangeInOrderch, UpdateElevStatusch, UpdateOfflinech)
 
 	go orderManager.UpdateElevStatus(elevatorMatrix, UpdateElevStatusch, SyncElevatorChans.ChangeInOrderch, elevConfig)
 
 	// Goroutines used in SyncElevator
-	go syncElevator.SyncElevator(elevatorMatrix, SyncElevatorChans, elevConfig, OrderManagerchans.UpdateOrderch, UpdateElevStatusch, OrderManagerchans.MatrixUpdatech)
+	go syncElevator.SyncElevator(elevatorMatrix, SyncElevatorChans, elevConfig, OrderManagerchans.UpdateOrderch, UpdateElevStatusch, UpdateOfflinech, OrderManagerchans.MatrixUpdatech)
 
 	// Goroutines used in Network/Peers
 	go peers.Transmitter(15789, strconv.Itoa(elevConfig.ID), SyncElevatorChans.TransmitEnable)

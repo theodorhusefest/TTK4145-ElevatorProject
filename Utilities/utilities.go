@@ -6,7 +6,7 @@ import (
 )
 
 //a function which prints out any given matrix to terminal
-func PrintMatrix(matrix [8][9]int ,n int, m int){
+func PrintMatrix(matrix [][]int ,n int, m int){
 
   for i:=0;i<len(matrix);i++{
     fmt.Print(" || ")

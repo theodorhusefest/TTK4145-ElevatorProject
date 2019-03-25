@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
- // "../Utilities"
+  //"../Utilities"
 )
 
 type SyncElevatorChannels struct {
@@ -19,16 +19,17 @@ type SyncElevatorChannels struct {
 }
 
 func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevator Elevator,
-	UpdateOrderch chan Message, UpdateElevStatusch chan Message, MatrixUpdatech chan Message) {
+	UpdateOrderch chan Message, UpdateElevStatusch chan Message, UpdateOfflinech chan Message, MatrixUpdatech chan Message) {
 
 	Online := false
 	AckMatrix := [4+NumFloors][3*NumElevators]AckStruct{}
 	ResendMatrixAck := AckStruct{}
+	//utilities.PrintAckMatrix(AckMatrix, NumFloors , NumElevators)
 
 
 
 	broadCastTicker := time.NewTicker(10 * time.Millisecond)
-	ackTicker := time.NewTicker(20000 * time.Millisecond)
+	ackTicker := time.NewTicker(500 * time.Millisecond)
 	for {
 		select {
 
@@ -51,11 +52,14 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
       					for elev := 0; elev < NumElevators; elev++ {
         					switch message.Select {
       						case NewOrder:
+      							AckMatrix[len(AckMatrix) - message.Floor - 1][message.SenderID*3 + int(message.Button)].Data = 1
       							AckMatrix[len(AckMatrix) - message.Floor - 1][message.SenderID*3 + int(message.Button)].AwaitingAck[elev] = true
 							case OrderComplete:
+								AckMatrix[len(AckMatrix) - message.Floor - 1][message.SenderID*3 + int(message.Button)].Data = 0
 								AckMatrix[len(AckMatrix) - message.Floor - 1][message.SenderID*3 + int(message.Button)].AwaitingAck[elev] = true
 							case UpdateStates:
-								AckMatrix[1][message.SenderID*3].AwaitingAck[elev] = true
+								//AckMatrix[1][message.SenderID*3].Data = message.State
+								//AckMatrix[1][message.SenderID*3].AwaitingAck[elev] = true
 							case UpdatedMatrix:
 								ResendMatrixAck.AwaitingAck[elev] = true
 							}    						
@@ -413,14 +417,31 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 		case <- ackTicker.C:
 
 
-			for i := 0; i < 4+NumFloors; i++ {
-				for j := 0; j < 3*NumElevators; j++ {
-					for k := 0; k < NumElevators; k++ {
-						if AckMatrix[i][j].AwaitingAck[k] == true {
-							//resend package
-							//fmt.Println("Resend package")
-						}
+			for floor := 4; floor < 4+NumFloors; floor++ {
+				for button := 0; button < 3*NumElevators; button++ {
+					for elev := 0; elev < NumElevators; elev++ {
+						if AckMatrix[floor][button].AwaitingAck[elev] == true && elevatorMatrix[1][elev*3] != 3 {
+							//utilities.PrintAckMatrix(AckMatrix, NumFloors , NumElevators)
+							fmt.Println("Resend package")
+							ResendOrder := []Message{}
+							if AckMatrix[floor][button].Data == 1 {
+								ResendOrder = []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: (button/NumElevators), Floor: 7-floor, Button: ButtonType (button%3)}}								
+							} else {
+								ResendOrder = []Message{{Select: OrderComplete, Done: false, SenderID: elevator.ID, ID: (button/NumElevators), Floor: 7-floor, Button: ButtonType (button%3)}}
+							}
+							fmt.Println("ResendOrder: ", ResendOrder)
+							select {
+							case <-broadCastTicker.C:
+							syncChans.OutGoingMsg <- ResendOrder
+							}
+						}	
 					}
+				}
+			}
+			for elev := 0; elev < NumElevators; elev++ {
+				if ResendMatrixAck.AwaitingAck[elev] == true {
+					message := Message{Select: SendMatrix, ID: elev}
+					MatrixUpdatech <- message
 				}
 			}
 
@@ -463,10 +484,9 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 				if newID != elevator.ID {
 					// Someone else is offline
 					fmt.Println(newID, "is offline")
-					message := Message{Select: UpdateOffline, ID: newID}
-					UpdateElevStatusch <- message
+					message := Message{Select: UpdateOffline, ID: newID, Done: true}
+					UpdateOfflinech <- message
 				} else {
-
 					Online = false
 					fmt.Println("I am offline")
 				}
@@ -476,7 +496,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 }
 
 
-
+/*
 
 func addAck (matrix [4+NumFloors][3*NumElevators]AckStruct, resendMatrixAck AckStruct, messages []Message, data int) {
 	for _, message := range messages {
@@ -518,7 +538,7 @@ func addAck (matrix [4+NumFloors][3*NumElevators]AckStruct, resendMatrixAck AckS
 		}
 		fmt.Println(matrix[7][0])
 	}
-}
+}*/
 
 
 

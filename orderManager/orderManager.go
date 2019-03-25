@@ -2,7 +2,7 @@ package orderManager
 
 import (
 	. "../Config"
-//	"../Utilities"
+	"../Utilities"
 	"../IO"
 	"../hallRequestAssigner"
 	"fmt"
@@ -29,7 +29,7 @@ type OrderManagerChannels struct {
 
 func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans OrderManagerChannels,
 	NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,
-	OutGoingMsg chan []Message, ChangeInOrderch chan []Message, UpdateElevStatusch chan Message) {
+	OutGoingMsg chan []Message, ChangeInOrderch chan []Message, UpdateElevStatusch chan Message, UpdateOfflinech chan Message) {
 
 	GlobalOrderTimedOut := time.NewTicker(8 * time.Second)
 
@@ -88,18 +88,15 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 				addOrder(OrderUpdate.ID, elevatorMatrix, localOrder)
 				setLight(OrderUpdate, elevator)
 				if OrderUpdate.ID == elevator.ID {
-					fmt.Println("I take it")
-					fmt.Println("State1", elevatorMatrix[1][1], "State2", elevatorMatrix[1][3], "State3", elevatorMatrix[1][6])
 					NewLocalOrderChan <- OrderUpdate.Floor
 				}
 
 			case OrderComplete:
 				clearFloors(OrderUpdate.Floor, elevatorMatrix, OrderUpdate.ID)
-				clearLight(OrderUpdate.Floor)
+				clearLight(OrderUpdate.Floor, elevator, OrderUpdate.ID)
 			}
 
-		case StateUpdate := <-UpdateElevStatusch:
-
+		case StateUpdate := <-UpdateOfflinech:
 
 			switch StateUpdate.Select {
 			case UpdateStates:
@@ -110,6 +107,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 				InsertFloor(StateUpdate.ID, StateUpdate.Floor, elevatorMatrix)
 
 			case UpdateOffline:
+				fmt.Println("Updating Offline")
 				InsertState(StateUpdate.ID, int(UNDEFINED), elevatorMatrix)
 
 			}
@@ -145,7 +143,8 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 
 		// ------------------------------------------------------------------------------------------------------- Case triggered every 5 seconds to check if orders left
 		case <-GlobalOrderTimedOut.C:
-      		//utilities.PrintMatrix(elevatorMatrix, 4, 3)
+      		utilities.PrintMatrix(elevatorMatrix, 4, 3)
+
 			fmt.Println("Checking for lost orders")
       		checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
 
@@ -185,9 +184,7 @@ func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderCha
               fmt.Println("Found order 1")
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
               addOrder(elevator.ID, elevatorMatrix, lostOrder)
-              //clearFloors(floor, elevatorMatrix, elev) ????????
-              fmt.Println("Driving from lostOrder1")
-              fmt.Println("State1", elevatorMatrix[1][1], "State2", elevatorMatrix[1][3], "State3", elevatorMatrix[1][6])
+              clearFloors(floor, elevatorMatrix, elev)
               NewLocalOrderChan <- floor
             }
         } else if elevatorMatrix[1][3*elev] != int(UNDEFINED) && elev == elevator.ID  {
@@ -195,8 +192,6 @@ func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderCha
               fmt.Println("Found order 1")
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
               addOrder(elevator.ID, elevatorMatrix, lostOrder)
-              fmt.Println("Driving from lostOrder2")
-              fmt.Println("State1", elevatorMatrix[1][1], "State2", elevatorMatrix[1][3], "State3", elevatorMatrix[1][6])
               NewLocalOrderChan <- floor
             }
         }
@@ -263,8 +258,10 @@ func setLight(illuminateOrder Message, elevator Elevator) {
 	}
 }
 
-func clearLight(LocalOrderFinished int) {
-	io.SetButtonLamp(BT_Cab, LocalOrderFinished, false)
+func clearLight(LocalOrderFinished int, elevator Elevator, messageID int) {
+	if elevator.ID == messageID {
+		io.SetButtonLamp(BT_Cab, LocalOrderFinished, false)
+	}
 	io.SetButtonLamp(BT_HallUp, LocalOrderFinished, false)
 	io.SetButtonLamp(BT_HallDown, LocalOrderFinished, false)
 }
