@@ -90,6 +90,7 @@ type Message struct {
 
 type AckStruct struct {
 	Data int
+	Data2 int
 	AwaitingAck [NumElevators]bool
 	RecievedAck [NumElevators]bool
 }

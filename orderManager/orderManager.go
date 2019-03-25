@@ -31,7 +31,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 	NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,
 	OutGoingMsg chan []Message, ChangeInOrderch chan []Message, UpdateElevStatusch chan Message) {
 
-	GlobalOrderTimedOut := time.NewTicker(5 * time.Second)
+	GlobalOrderTimedOut := time.NewTicker(8 * time.Second)
 
 	for {
 		select {
@@ -119,7 +119,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 			switch MatrixUpdate.Select {
 			case SendMatrix:
 				fmt.Println("Someone new on network, sending matrix")
-				outMessage := []Message{{Select: UpdatedMatrix, Matrix: elevatorMatrix, ID: MatrixUpdate.ID}}
+				outMessage := []Message{{Select: UpdatedMatrix, SenderID: elevator.ID, Matrix: elevatorMatrix, ID: MatrixUpdate.ID}}
 				ChangeInOrderch <- outMessage
 
 			case UpdatedMatrix:
@@ -155,7 +155,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 	}
 }
 
-func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message, ChangeInOrderch chan []Message) {
+func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message, ChangeInOrderch chan []Message, elevator Elevator) {
   for {
     select {
     case message := <-UpdateElevStatusch:
@@ -165,6 +165,9 @@ func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message, C
       InsertFloor(message.ID, message.Floor, elevatorMatrix)
 
       OutMessage := []Message{message}
+
+      OutMessage[0].SenderID = elevator.ID
+
       if !message.Done {
         ChangeInOrderch <- OutMessage
       }

@@ -39,16 +39,16 @@ func main() {
 	}
 	// Channels for OrderManager
 	OrderManagerchans := orderManager.OrderManagerChannels{
-		LocalOrderFinishedChan: make(chan int),
-		NewLocalOrderch:        make(chan Message),
-		UpdateOrderch:          make(chan Message),
+		LocalOrderFinishedChan: make(chan int,2),
+		NewLocalOrderch:        make(chan Message, 2),
+		UpdateOrderch:          make(chan Message, 2),
 		MatrixUpdatech:         make(chan Message),
 	}
 	// Channels for SyncElevator
 	SyncElevatorChans := syncElevator.SyncElevatorChannels{
 		OutGoingMsg:     make(chan []Message),
 		InCommingMsg:    make(chan []Message),
-		ChangeInOrderch: make(chan []Message, 2),   // BUFFER ØKT TIL 2,UNNGÅR KRASJ MED 2 KNAPPER
+		ChangeInOrderch: make(chan []Message, 2),
 		PeerUpdate:      make(chan peers.PeerUpdate),
 		TransmitEnable:  make(chan bool),
 		BroadcastTicker: make(chan bool),
@@ -73,7 +73,7 @@ func main() {
 	go orderManager.OrderManager(elevatorMatrix, elevConfig, OrderManagerchans, NewGlobalOrderChan, FSMchans.NewLocalOrderChan, SyncElevatorChans.OutGoingMsg,
 		SyncElevatorChans.ChangeInOrderch, UpdateElevStatusch)
 
-	go orderManager.UpdateElevStatus(elevatorMatrix, UpdateElevStatusch, SyncElevatorChans.ChangeInOrderch)
+	go orderManager.UpdateElevStatus(elevatorMatrix, UpdateElevStatusch, SyncElevatorChans.ChangeInOrderch, elevConfig)
 
 	// Goroutines used in SyncElevator
 	go syncElevator.SyncElevator(elevatorMatrix, SyncElevatorChans, elevConfig, OrderManagerchans.UpdateOrderch, UpdateElevStatusch, OrderManagerchans.MatrixUpdatech)
