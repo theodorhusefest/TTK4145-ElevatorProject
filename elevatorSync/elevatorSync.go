@@ -167,6 +167,8 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 							}
 
 						case UpdateStates:
+							fmt.Println("----------")
+							sendAck.Ack = false
 							UpdateOfflinech <- message
 							/*	if message.Ack {
 									sendAck.Ack = false
@@ -271,6 +273,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 							}
 
 						case UpdateStates:
+							fmt.Println("--")
 							UpdateOfflinech <- message
 							/*AckMatrix[1][message.ID*3].AwaitingAck[message.SenderID] = false
 							// Hvis alle har sendt ack: kjør
@@ -337,6 +340,7 @@ func SyncElevator(elevatorMatrix [][]int, syncChans SyncElevatorChannels, elevat
 								ResendOrder = []Message{{Select: OrderComplete, Done: false, SenderID: elevator.ID, ID: (button / NumElevators), Floor: 7 - floor, Button: ButtonType(button % 3)}}
 							}
 							fmt.Println("ResendOrder: ", ResendOrder, " Button/NumElevators", button/NumElevators, button, NumElevators)
+							fmt.Println(AckMatrix[floor][button].AwaitingAck)
 							select {
 							case <-broadCastTicker.C:
 								syncChans.OutGoingMsg <- ResendOrder

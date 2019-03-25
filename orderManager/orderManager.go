@@ -31,7 +31,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 	NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,
 	OutGoingMsg chan []Message, ChangeInOrderch chan []Message, UpdateElevStatusch chan Message, UpdateOfflinech chan Message) {
 
-	GlobalOrderTimedOut := time.NewTicker(8 * time.Second)
+	GlobalOrderTimedOut := time.NewTicker(4 * time.Second)
 
 	for {
 		select {
@@ -103,12 +103,14 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 
 				InsertID(StateUpdate.ID, elevatorMatrix)
 				InsertState(StateUpdate.ID, StateUpdate.State, elevatorMatrix)
+				fmt.Println("Inserting UpdateStates", StateUpdate.State)
 				InsertDirection(StateUpdate.ID, StateUpdate.Dir, elevatorMatrix)
 				InsertFloor(StateUpdate.ID, StateUpdate.Floor, elevatorMatrix)
 
 			case UpdateOffline:
 				fmt.Println("Updating Offline")
 				InsertState(StateUpdate.ID, int(UNDEFINED), elevatorMatrix)
+				fmt.Println("Inserting OfflineStates", StateUpdate.State)
 
 			}
 
