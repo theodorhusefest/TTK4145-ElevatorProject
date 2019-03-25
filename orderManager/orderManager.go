@@ -69,7 +69,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 
 				// Send message to sync                //time.Sleep(10*time.Second)
 
-	
+
 				fmt.Println("NewHallOrder = ", newHallOrders)
 
 
@@ -124,6 +124,8 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 				if MatrixUpdate.ID == elevator.ID {
 					fmt.Println("Resetting matrix")
 					elevatorMatrix = updateOrdersInMatrix(elevatorMatrix, MatrixUpdate.Matrix, MatrixUpdate.ID)
+					outMessage := []Message{{Select:UpdateStates ,ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}}
+					ChangeInOrderch <- outMessage
 				}
 			}
 
@@ -146,7 +148,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
       		utilities.PrintMatrix(elevatorMatrix, 4, 3)
 
 			fmt.Println("Checking for lost orders")
-      		checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
+      		//checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
 
 
 			// -------------------------------------------------------------------------------------------------------Case triggered by incomming update (New_order, order_done etc.)
@@ -169,6 +171,7 @@ func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message, C
 
       if !message.Done {
         ChangeInOrderch <- OutMessage
+
       }
     }
   }
