@@ -31,7 +31,7 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 					ButtonPressedchn chan ButtonEvent, NewLocalOrderChan chan int, ChangeInOrderch chan []Message, 
 					UpdateElevStatusch chan Message, GlobalStateUpdatech chan Message) {
 
-	GlobalOrderTimedOut := time.NewTicker(10 * time.Second)
+	OrderTimedOut := time.NewTimer(10 * time.Second)
 
 	for {
 		select {
@@ -45,10 +45,10 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 
 			case BT_Cab:
 
-				outMessage := []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: elevator.ID, Floor: ButtonPressed.Floor, Button: ButtonPressed.Button}}
+				newCabOrder := []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: elevator.ID, Floor: ButtonPressed.Floor, Button: ButtonPressed.Button}}
 				// Send message to sync
-				fmt.Println("NewCabOrder = ", outMessage)
-				ChangeInOrderch <- outMessage
+				fmt.Println("NewCabOrder = ", newCabOrder)
+				ChangeInOrderch <- newCabOrder
 
 			default:
 
@@ -59,6 +59,7 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 
 				ChangeInOrderch <- newHallOrders
 			}
+			OrderTimedOut.Reset(10 * time.Second)
 
 		case OrderUpdate := <-OrderManagerChans.UpdateOrderch:
 			switch OrderUpdate.Select {
@@ -70,10 +71,12 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 					NewLocalOrderChan <- OrderUpdate.Floor
 				}
 
+
 			case OrderComplete:
 				clearFloors(OrderUpdate.Floor, elevatorMatrix, OrderUpdate.ID)
 				clearLight(OrderUpdate.Floor, elevator, OrderUpdate.ID)
 			}
+			OrderTimedOut.Reset(10 * time.Second)
 
 		case StateUpdate := <-GlobalStateUpdatech:
 
@@ -116,10 +119,11 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 
 
 		// ------------------------------------------------------------------------------------------------------- Case triggered every 5 seconds to check if orders left
-		case <-GlobalOrderTimedOut.C:
-
+		case <- OrderTimedOut.C:
 			fmt.Println("Checking for lost orders")
       		checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
+			OrderTimedOut.Reset(10 * time.Second)
+
 
 
 			// -------------------------------------------------------------------------------------------------------Case triggered by incomming update (New_order, order_done etc.)

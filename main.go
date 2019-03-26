@@ -17,9 +17,7 @@ import (
 )
 
 func main() {
-
-	// Initialize
-	// !!!!!!!!!!!!!! Skru av alle lys, initialiser matrisen til antall input
+	
 	floorInp := flag.Int("numFloors", 4, "an int")
 	elevInp := flag.Int("numElevators", 3, "an int")
 	portInp := flag.String("port", "15657", "a string")

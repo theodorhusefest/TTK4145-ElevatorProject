@@ -109,6 +109,7 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 			UpdateElevStatusch <- updatedStates
 
 		case <- motorFailureTimeOut.C:
+			fmt.Println("Motor has failed")
 			elevator.State = UNDEFINED
 			orderManager.InsertState(elevator.ID, int(UNDEFINED), elevatorMatrix)
 
