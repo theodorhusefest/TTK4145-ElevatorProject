@@ -9,15 +9,15 @@ import (
 )
 
 type HallAssignerElev struct {
-	Behaviour   string          `json:"behaviour"`
-	Floor       int             `json:"floor"`
-	Direction   string          `json:"direction"`
-	CabRequests [NumFloors]bool `json:"cabRequests"`
+	Behaviour   string          				`json:"behaviour"`
+	Floor       int             				`json:"floor"`
+	Direction   string          				`json:"direction"`
+	CabRequests [NumFloors]bool 				`json:"cabRequests"`
 }
 
 type HallAssignerInput struct {
-	HallRequests [NumFloors][2]bool           `json:"hallRequests"`
-	States       map[string]*HallAssignerElev `json:"states"`
+	HallRequests [NumFloors][2]bool           	`json:"hallRequests"`
+	States       map[string]*HallAssignerElev 	`json:"states"`
 }
 
 func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int, elevator Elevator) []Message {
@@ -31,7 +31,6 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int, elevato
 	for floor := 0; floor < NumFloors; floor++ {
 		for button := 0; button < 2; button++ {
 			for elev := 0; elev < NumElevators; elev++ {
-				//fmt.Println(elevatorMatrix[len(elevatorMatrix)-floor-1][button+elev*NumElevators])
 				if elevatorMatrix[len(elevatorMatrix)-floor-1][button+elev*NumElevators] == 1 {
 					hallRequests[floor][button] = true
 				}
@@ -46,7 +45,7 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int, elevato
 
 	// Update states
 	for elev := 0; elev < NumElevators; elev++ {
-		if elevatorMatrix[1][elev*NumElevators] != 3 { // Elevator is online
+		if elevatorMatrix[1][elev*NumElevators] != 3 { // Elevator has to be defined
 			onlineElev := HallAssignerElev{}
 			onlineElev.Floor = elevatorMatrix[2][elev*NumElevators]
 
@@ -69,6 +68,7 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int, elevato
 			}
 			onlineElev.CabRequests = cabRequests
 
+			// Check current state
 			if elevatorMatrix[1][elev*NumElevators] == 0 {
 				onlineElev.Behaviour = "idle"
 			} else if elevatorMatrix[1][elev*NumElevators] == 1 {
@@ -101,10 +101,7 @@ func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int, elevato
 				}
 			}
 		}
-
-		fmt.Println("Assigned Orders: ", assignedOrders)
 	}
-	fmt.Println("Updated Orders: ", updatedOrders)
 	return updatedOrders
 
 }

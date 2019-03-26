@@ -55,7 +55,6 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 				elevator.Dir = chooseDirection(elevatorMatrix, elevator)
 				if elevator.Floor == newLocalOrder {
 					doorOpenTimeOut.Reset(3 * time.Second)
-					fmt.Println("Resetting Time")
 					LocalOrderFinishedChan <- elevator.Floor
 				}
 
@@ -63,7 +62,6 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 				fmt.Println("Motor has failed")
 
 			}
-			fmt.Println("Sending status update")
 			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
 			UpdateElevStatusch <- updatedStates
 
@@ -87,7 +85,6 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 			} else if elevator.State != IDLE {
 				motorFailureTimeOut.Reset(5 * time.Second)
 			}
-			fmt.Println("Sending status update")
 			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
 			UpdateElevStatusch <- updatedStates
 
@@ -108,16 +105,13 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 				motorFailureTimeOut.Reset(5 * time.Second)
 			}
 
-			fmt.Println("Sending status update")
 			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
 			UpdateElevStatusch <- updatedStates
 
 		case <- motorFailureTimeOut.C:
-			fmt.Println("Motor Failure")
 			elevator.State = UNDEFINED
 			orderManager.InsertState(elevator.ID, int(UNDEFINED), elevatorMatrix)
 
-			fmt.Println("Sending status update")
 			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
 			UpdateElevStatusch <- updatedStates
 		}

@@ -2,7 +2,7 @@ package orderManager
 
 import (
 	. "../Config"
-	"../Utilities"
+	//"../Utilities"
 	"../IO"
 	"../hallRequestAssigner"
 	"fmt"
@@ -27,58 +27,37 @@ type OrderManagerChannels struct {
 	MatrixUpdatech         chan Message
 }
 
-func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans OrderManagerChannels,
-	NewGlobalOrderChan chan ButtonEvent, NewLocalOrderChan chan int,
-	OutGoingMsg chan []Message, ChangeInOrderch chan []Message, UpdateElevStatusch chan Message, UpdateOfflinech chan Message) {
+func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans OrderManagerChannels,
+					ButtonPressedchn chan ButtonEvent, NewLocalOrderChan chan int, ChangeInOrderch chan []Message, 
+					UpdateElevStatusch chan Message, GlobalStateUpdatech chan Message) {
 
-	GlobalOrderTimedOut := time.NewTicker(4 * time.Second)
+	GlobalOrderTimedOut := time.NewTicker(10 * time.Second)
 
 	for {
 		select {
 
-		/*
-		   1: Ordre tas imot av en heis.
-		   2: Den heisen kjører kostfunksjon og bestemmer hvem som får jobben.
-		   3: Heisen sender ordren til alle andre heiser, så alle er oppdatert.
-		   4: Alle skrur
-		   5: Den heisen som får jobben, trigger sin egen FSM med        NewLocalOrderChan <- int(newGlobalOrder.Floor)
-		   6: Heisen som har utført et oppdrag oppdaterer de andre, så alle vet det samme
-		   7: Alle fjerner ordren lokalt og evt. skrur av lys
-		*/
 
 		// -----------------------------------------------------------------------------------------------------Case triggered by local button
-		case NewGlobalOrder := <-NewGlobalOrderChan:
+		case ButtonPressed := <-ButtonPressedchn:
 
 
-			switch NewGlobalOrder.Button {
+			switch ButtonPressed.Button {
 
 			case BT_Cab:
 
-				outMessage := []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: elevator.ID, Floor: NewGlobalOrder.Floor, Button: NewGlobalOrder.Button}}
+				outMessage := []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: elevator.ID, Floor: ButtonPressed.Floor, Button: ButtonPressed.Button}}
 				// Send message to sync
 				fmt.Println("NewCabOrder = ", outMessage)
 				ChangeInOrderch <- outMessage
 
-				// addOrder(elevator.ID, elevatorMatrix, NewGlobalOrder) // ELEV-ID TO DEDICATED ELEVATOR
-				//  setLight(outMessage[0], elevator)
-
 			default:
 
-				newHallOrders := hallOrderAssigner.AssignHallOrder(NewGlobalOrder, elevatorMatrix, elevator)
-
-
-				// Send message to sync                //time.Sleep(10*time.Second)
+				newHallOrders := hallOrderAssigner.AssignHallOrder(ButtonPressed, elevatorMatrix, elevator)
 
 
 				fmt.Println("NewHallOrder = ", newHallOrders)
 
-
-
 				ChangeInOrderch <- newHallOrders
-				/*
-				   // Wait for sync to say everyone knows the same
-				*/
-
 			}
 
 		case OrderUpdate := <-OrderManagerChans.UpdateOrderch:
@@ -96,21 +75,18 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 				clearLight(OrderUpdate.Floor, elevator, OrderUpdate.ID)
 			}
 
-		case StateUpdate := <-UpdateOfflinech:
+		case StateUpdate := <-GlobalStateUpdatech:
 
 			switch StateUpdate.Select {
 			case UpdateStates:
 
 				InsertID(StateUpdate.ID, elevatorMatrix)
 				InsertState(StateUpdate.ID, StateUpdate.State, elevatorMatrix)
-				fmt.Println("Inserting UpdateStates", StateUpdate.State)
 				InsertDirection(StateUpdate.ID, StateUpdate.Dir, elevatorMatrix)
 				InsertFloor(StateUpdate.ID, StateUpdate.Floor, elevatorMatrix)
 
 			case UpdateOffline:
-				fmt.Println("Updating Offline")
 				InsertState(StateUpdate.ID, int(UNDEFINED), elevatorMatrix)
-				fmt.Println("Inserting OfflineStates", StateUpdate.State)
 
 			}
 
@@ -118,7 +94,7 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 
 			switch MatrixUpdate.Select {
 			case SendMatrix:
-				fmt.Println("Someone new on network, sending matrix")
+				fmt.Println("Resending matrix")
 				outMessage := []Message{{Select: UpdatedMatrix, SenderID: elevator.ID, Matrix: elevatorMatrix, ID: MatrixUpdate.ID}}
 				ChangeInOrderch <- outMessage
 
@@ -127,7 +103,6 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 					fmt.Println("Resetting matrix")
 					elevatorMatrix = updateOrdersInMatrix(elevatorMatrix, MatrixUpdate.Matrix, MatrixUpdate.ID)
 					outMessage := []Message{{Select:UpdateStates ,ID: elevator.ID, State: int(elevator.State), Floor: elevatorMatrix[2][elevator.ID*3], Dir: elevator.Dir}}
-					fmt.Println("Elev", elevator)
 					ChangeInOrderch <- outMessage
 				}
 			}
@@ -135,22 +110,15 @@ func OrderManager(elevatorMatrix [][]int, elevator Elevator, OrderManagerChans O
 		// -----------------------------------------------------------------------------------------------------Case triggered by elevator done with order
 		case LocalOrderFinished := <-OrderManagerChans.LocalOrderFinishedChan:
 
-			// Update message to be sent to everyone. Select = 2 for order done
-
 			outMessage := []Message{{Select: OrderComplete, SenderID: elevator.ID, Done: false, ID: elevator.ID, Floor: LocalOrderFinished}}
 
-			// Send message to sync
 			ChangeInOrderch <- outMessage
 
-			// Wait for sync to say everyone knows the same
-
-			// Print updated matrix for fun)
 
 		// ------------------------------------------------------------------------------------------------------- Case triggered every 5 seconds to check if orders left
 		case <-GlobalOrderTimedOut.C:
-      		utilities.PrintMatrix(elevatorMatrix, 4, 3)
 
-					fmt.Println("Checking for lost orders")
+			fmt.Println("Checking for lost orders")
       		checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
 
 
@@ -187,7 +155,6 @@ func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderCha
         if elevatorMatrix[1][3*elev] == int(UNDEFINED) && elev != elevator.ID && button != 2 {
             // check others matrix
             if elevatorMatrix[len(elevatorMatrix)-floor - 1][button+elev*NumElevators] == 1 {
-              fmt.Println("Found order 1")
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
               addOrder(elevator.ID, elevatorMatrix, lostOrder)
               clearFloors(floor, elevatorMatrix, elev)
@@ -195,7 +162,6 @@ func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderCha
             }
         } else if elevatorMatrix[1][3*elev] != int(UNDEFINED) && elev == elevator.ID  {
             if elevatorMatrix[len(elevatorMatrix)-floor - 1][button+elev*NumElevators] == 1 {
-              fmt.Println("Found order 1")
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
               addOrder(elevator.ID, elevatorMatrix, lostOrder)
               NewLocalOrderChan <- floor
@@ -270,9 +236,3 @@ func clearLight(LocalOrderFinished int, elevator Elevator, messageID int) {
 	io.SetButtonLamp(BT_HallUp, LocalOrderFinished, false)
 	io.SetButtonLamp(BT_HallDown, LocalOrderFinished, false)
 }
-
-// FIKS
-// Button cab light
-// Ack
-// Bug med 2 knapper samtidig
-//

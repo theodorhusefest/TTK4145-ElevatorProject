@@ -3,7 +3,6 @@ package initialize
 import (
 	. "../Config"
 	"../IO"
-	"../Utilities"
 	"fmt"
 )
 
@@ -15,9 +14,7 @@ func InitElevator(elevator Elevator, matrix [][]int, channelFloor chan int) {
 	io.SetMotorDirection(DIR_Down)                  //elevator goes downwards
 	go io.PollFloorSensor(channelFloor)
 	currentFloor := <- channelFloor      //the floor is put onto channelFloor
-	fmt.Println(currentFloor)
 	matrix[2][elevator.ID*3] = currentFloor  //channelFloor is stored in matrix
-	utilities.PrintMatrix(matrix,4,3)
 	elevator.Floor = currentFloor
 	io.SetMotorDirection(DIR_Stop)                   //elevator stops
 	InitLights()
