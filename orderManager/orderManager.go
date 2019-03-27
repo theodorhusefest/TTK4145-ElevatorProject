@@ -40,26 +40,30 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 		// -----------------------------------------------------------------------------------------------------Case triggered by local button
 		case ButtonPressed := <-ButtonPressedchn:
 
+			if elevatorMatrix[1][elevator.ID*NumElevators] != 3 {
+				switch ButtonPressed.Button {
 
-			switch ButtonPressed.Button {
+				case BT_Cab:
 
-			case BT_Cab:
+					newCabOrder := []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: elevator.ID, Floor: ButtonPressed.Floor, Button: ButtonPressed.Button}}
+					// Send message to sync
+					fmt.Println("NewCabOrder = ", newCabOrder)
+					ChangeInOrderch <- newCabOrder
 
-				newCabOrder := []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: elevator.ID, Floor: ButtonPressed.Floor, Button: ButtonPressed.Button}}
-				// Send message to sync
-				fmt.Println("NewCabOrder = ", newCabOrder)
-				ChangeInOrderch <- newCabOrder
+				default:
 
-			default:
-
-				newHallOrders := hallOrderAssigner.AssignHallOrder(ButtonPressed, elevatorMatrix, elevator)
+					newHallOrders := hallOrderAssigner.AssignHallOrder(ButtonPressed, elevatorMatrix, elevator)
 
 
-				fmt.Println("NewHallOrder = ", newHallOrders)
+					fmt.Println("NewHallOrder = ", newHallOrders)
 
-				ChangeInOrderch <- newHallOrders
-			}
+					ChangeInOrderch <- newHallOrders
+				}
+
 			OrderTimedOut.Reset(10 * time.Second)
+
+			}
+			
 
 		case OrderUpdate := <-OrderManagerChans.UpdateOrderch:
 			switch OrderUpdate.Select {
@@ -161,12 +165,16 @@ func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderCha
             if elevatorMatrix[len(elevatorMatrix)-floor - 1][button+elev*NumElevators] == 1 {
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
               addOrder(elevator.ID, elevatorMatrix, lostOrder)
+              lightOrder := Message{ID:elev, Floor: floor, Button: ButtonType(button)}
+              setLight(lightOrder, elevator)
               clearFloors(floor, elevatorMatrix, elev)
               NewLocalOrderChan <- floor
             }
         } else if elevatorMatrix[1][3*elev] != int(UNDEFINED) && elev == elevator.ID  {
             if elevatorMatrix[len(elevatorMatrix)-floor - 1][button+elev*NumElevators] == 1 {
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
+              lightOrder := Message{ID:elev, Floor: floor, Button: ButtonType(button)}
+              setLight(lightOrder, elevator)
               addOrder(elevator.ID, elevatorMatrix, lostOrder)
               NewLocalOrderChan <- floor
             }
