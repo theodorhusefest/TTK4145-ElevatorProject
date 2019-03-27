@@ -207,7 +207,6 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 								}
 							}
 							if allReady {
-								fmt.Println(message)
 								UpdateOrderch <- message
 							}
 

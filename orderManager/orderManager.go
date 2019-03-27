@@ -2,7 +2,6 @@ package orderManager
 
 import (
 	. "../Config"
-	"../Utilities"
 	"../IO"
 	"../hallRequestAssigner"
 	"fmt"
@@ -47,7 +46,7 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 
 					newCabOrder := []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: elevator.ID, Floor: ButtonPressed.Floor, Button: ButtonPressed.Button}}
 					// Send message to sync
-					fmt.Println("NewCabOrder = ", newCabOrder)
+					fmt.Println("Cab order at elevator:", elevator.ID)
 					ChangeInOrderch <- newCabOrder
 
 				default:
@@ -55,7 +54,7 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 					newHallOrders := hallOrderAssigner.AssignHallOrder(ButtonPressed, elevatorMatrix, elevator)
 
 
-					fmt.Println("NewHallOrder = ", newHallOrders)
+					fmt.Println("Hall order at elevator:", elevator.ID)
 
 					ChangeInOrderch <- newHallOrders
 				}
@@ -156,7 +155,6 @@ func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message, C
 }
 
 func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderChan chan int) {
-	utilities.PrintMatrix(elevatorMatrix,4,3)
 	for floor := 0; floor < NumFloors; floor++ {
 		for button := 0; button < 3; button++ {
       for elev := 0; elev < NumElevators; elev++ {
