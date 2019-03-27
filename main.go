@@ -44,10 +44,10 @@ func main() {
 	}
 	// Channels for SyncElevator
 	SyncElevatorChans := syncElevator.SyncElevatorChannels{
-		OutGoingMsg:     make(chan []Message),
-		InCommingMsg:    make(chan []Message),
-		ChangeInOrderch: make(chan []Message, 2),
-		PeerUpdate:      make(chan peers.PeerUpdate),
+		OutGoingMsg:     make(chan []Message,10),
+		InCommingMsg:    make(chan []Message,10),
+		ChangeInOrderch: make(chan []Message,10),
+		PeerUpdate:      make(chan peers.PeerUpdate,2),
 		TransmitEnable:  make(chan bool),
 		BroadcastTicker: make(chan bool),
 	}
