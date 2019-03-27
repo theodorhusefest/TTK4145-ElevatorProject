@@ -31,7 +31,7 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 					ButtonPressedchn chan ButtonEvent, NewLocalOrderChan chan int, ChangeInOrderch chan []Message, 
 					UpdateElevStatusch chan Message, GlobalStateUpdatech chan Message) {
 
-	OrderTimedOut := time.NewTimer(10 * time.Second)
+	OrderTimedOut := time.NewTimer(5 * time.Second)
 
 	for {
 		select {
@@ -101,13 +101,12 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 
 			switch MatrixUpdate.Select {
 			case SendMatrix:
-				fmt.Println("Resending matrix")
+				fmt.Println("Sending matrix")
 				outMessage := []Message{{Select: UpdatedMatrix, SenderID: elevator.ID, Matrix: elevatorMatrix, ID: MatrixUpdate.ID}}
 				ChangeInOrderch <- outMessage
 
 			case UpdatedMatrix:
 				if MatrixUpdate.ID == elevator.ID {
-					fmt.Println("Resetting matrix")
 					elevatorMatrix = updateOrdersInMatrix(elevatorMatrix, MatrixUpdate.Matrix, MatrixUpdate.ID)
 					outMessage := []Message{{Select:UpdateStates ,ID: elevator.ID, State: int(elevator.State), Floor: elevatorMatrix[2][elevator.ID*3], Dir: elevator.Dir}}
 					ChangeInOrderch <- outMessage
