@@ -77,7 +77,7 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 
 
 			case OrderComplete:
-				clearFloors(OrderUpdate.Floor, elevatorMatrix, OrderUpdate.ID)
+				clearFloors(OrderUpdate.Floor, elevatorMatrix,, elevator, OrderUpdate.ID)
 				clearLight(OrderUpdate.Floor, elevator, OrderUpdate.ID)
 			}
 			OrderTimedOut.Reset(10 * time.Second)
@@ -166,7 +166,7 @@ func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderCha
               addOrder(elevator.ID, elevatorMatrix, lostOrder)
               lightOrder := Message{ID:elev, Floor: floor, Button: ButtonType(button)}
               setLight(lightOrder, elevator)
-              clearFloors(floor, elevatorMatrix, elev)
+              clearFloors(floor, elevatorMatrix, elevator, elev)
               NewLocalOrderChan <- floor
             }
         } else if elevatorMatrix[1][3*elev] != int(UNDEFINED) && elev == elevator.ID  {
@@ -201,10 +201,16 @@ func addOrder(id int, matrix [][]int, buttonPressed ButtonEvent) [][]int {
 	return matrix
 }
 
-func clearFloors(currentFloor int, elevatorMatrix [][]int, id int) {
-	for button := 0; button < NumElevators; button++ {
-		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+id*NumElevators] = 0
+func clearFloors(currentFloor int, elevatorMatrix [][]int, elevator Elevator, messageID int) {
+	for button := 0; button < 2; button++ {
+		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+messageID*NumElevators] = 0
 	}
+	if messageID == elevator.ID {
+		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][2+messageID*NumElevators] = 0
+
+	}
+
+
 }
 
 func InsertID(id int, matrix [][]int) {
