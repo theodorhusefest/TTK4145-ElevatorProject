@@ -28,7 +28,7 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 	ResendMatrixAck := AckStruct{}
 
 	broadCastTicker := time.NewTicker(10 * time.Millisecond)
-	ackTicker := time.NewTicker(1500 * time.Millisecond)
+	ackTicker := time.NewTicker(500 * time.Millisecond)
 	for {
 		select {
 
@@ -294,6 +294,11 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 
 		// --------------------------------------------------------------------------Case triggered by update in peers
 		case p := <-syncChans.PeerUpdate:
+
+			time.Sleep(500 * time.Millisecond)
+			AckMatrix = [4 + NumFloors][3 * NumElevators]AckStruct{}
+
+
 
 			if len(p.New) > 0 {
 				newID, _ := strconv.Atoi(p.New) // ID of new Peer

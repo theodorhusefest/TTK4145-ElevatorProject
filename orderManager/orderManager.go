@@ -77,7 +77,7 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 
 
 			case OrderComplete:
-				clearFloors(OrderUpdate.Floor, elevatorMatrix,, elevator, OrderUpdate.ID)
+				clearFloors(OrderUpdate.Floor, elevatorMatrix, elevator, OrderUpdate.ID)
 				clearLight(OrderUpdate.Floor, elevator, OrderUpdate.ID)
 			}
 			OrderTimedOut.Reset(10 * time.Second)
