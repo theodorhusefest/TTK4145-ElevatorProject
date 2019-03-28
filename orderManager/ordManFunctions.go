@@ -5,8 +5,8 @@ import (
 	"../IO"
 )
 
-func UpdateElevStatus(	elevatorMatrix [][]int, UpdateElevStatusch chan Message, 
-						SyncUpdatech chan []Message, localElev Elevator) {
+func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message,
+	SyncUpdatech chan []Message, localElev Elevator) {
 	for {
 		select {
 		case message := <-UpdateElevStatusch:

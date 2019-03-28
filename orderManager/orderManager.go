@@ -38,7 +38,6 @@ func OrderManager(elevatorMatrix [][]int, localElev Elevator,
 	for {
 		select {
 
-		// -----------------------------------------------------------------------------------------------------Case triggered by local button
 		case ButtonPressed := <-ButtonPressedchn:
 
 			if elevatorMatrix[1][localElev.ID*NumElevators] != 3 {
@@ -58,7 +57,6 @@ func OrderManager(elevatorMatrix [][]int, localElev Elevator,
 					newHallOrders := hallOrderAssigner.AssignHallOrder(ButtonPressed, elevatorMatrix, localElev)
 
 					fmt.Println("Hall order at elevator:", localElev.ID)
-
 					SyncUpdatech <- newHallOrders
 				}
 
@@ -94,7 +92,6 @@ func OrderManager(elevatorMatrix [][]int, localElev Elevator,
 
 			case UpdateOffline:
 				InsertState(StateUpdate.ID, int(UNDEFINED), elevatorMatrix)
-
 			}
 
 		case MatrixUpdate := <-OrderManagerChans.MatrixUpdatech:
