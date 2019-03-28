@@ -56,7 +56,7 @@ const (
 
 // Struct for sendig of messages
 type Message struct {
-	// Select different cases of message based on value
+	// Select different cases of message based on value 
 	Select MessageType
 	Done bool
 	SenderID int
@@ -83,3 +83,4 @@ type AckStruct struct {
 	Data        int
 	AwaitingAck [NumElevators]bool
 }
+
