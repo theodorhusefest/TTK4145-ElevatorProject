@@ -5,11 +5,11 @@ import (
 	"../IO"
 )
 
-func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message,
+func UpdateElevStatus(elevatorMatrix [][]int, LocalStateUpdatech chan Message,
 	SyncUpdatech chan []Message, localElev Elevator) {
 	for {
 		select {
-		case message := <-UpdateElevStatusch:
+		case message := <- LocalStateUpdatech:
 			InsertID(message.ID, elevatorMatrix)
 			InsertState(message.ID, message.State, elevatorMatrix)
 			InsertDirection(message.ID, message.Dir, elevatorMatrix)

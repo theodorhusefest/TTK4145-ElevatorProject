@@ -18,7 +18,7 @@ type SyncElevatorChannels struct {
 
 func SyncElevator(elevatorMatrix [][]int, localElev Elevator,
 	syncChans SyncElevatorChannels, UpdateOrderch chan Message,
-	UpdateElevStatusch chan Message, GlobalStateUpdatech chan Message,
+	LocalStateUpdatech chan Message, GlobalStateUpdatech chan Message,
 	MatrixUpdatech chan Message) {
 
 	Online := false
@@ -67,7 +67,7 @@ func SyncElevator(elevatorMatrix [][]int, localElev Elevator,
 							UpdateOrderch <- message
 
 						case UpdateStates, UpdateOffline:
-							UpdateElevStatusch <- message
+							LocalStateUpdatech <- message
 
 						case ACK:
 

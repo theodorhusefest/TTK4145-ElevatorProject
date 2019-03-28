@@ -16,7 +16,7 @@ type FSMchannels struct {
 
 func StateMachine(elevatorMatrix [][]int, localElev Elevator,
 	FSMchans FSMchannels, LocalOrderFinishedChan chan int,
-	UpdateElevStatusch chan Message) {
+	LocalStateUpdatech chan Message) {
 
 	doorOpenTimeOut := time.NewTimer(3 * time.Second)
 	motorFailureTimeOut := time.NewTimer(5 * time.Second)
@@ -61,7 +61,7 @@ func StateMachine(elevatorMatrix [][]int, localElev Elevator,
 
 			}
 			updatedStates := Message{Select: UpdateStates, ID: localElev.ID, State: int(localElev.State), Floor: localElev.Floor, Dir: localElev.Dir}
-			UpdateElevStatusch <- updatedStates
+			LocalStateUpdatech <- updatedStates
 
 		case currentFloor := <-FSMchans.ArrivedAtFloorChan:
 
@@ -80,11 +80,12 @@ func StateMachine(elevatorMatrix [][]int, localElev Elevator,
 				orderManager.InsertDirection(localElev.ID, localElev.Dir, elevatorMatrix)
 
 				LocalOrderFinishedChan <- localElev.Floor
+				
 			} else if localElev.State != IDLE {
 				motorFailureTimeOut.Reset(5 * time.Second)
 			}
 			updatedStates := Message{Select: UpdateStates, ID: localElev.ID, State: int(localElev.State), Floor: localElev.Floor, Dir: localElev.Dir}
-			UpdateElevStatusch <- updatedStates
+			LocalStateUpdatech <- updatedStates
 
 		case <-doorOpenTimeOut.C:
 			io.SetDoorOpenLamp(false)
@@ -104,7 +105,7 @@ func StateMachine(elevatorMatrix [][]int, localElev Elevator,
 			}
 
 			updatedStates := Message{Select: UpdateStates, ID: localElev.ID, State: int(localElev.State), Floor: localElev.Floor, Dir: localElev.Dir}
-			UpdateElevStatusch <- updatedStates
+			LocalStateUpdatech <- updatedStates
 
 		case <-motorFailureTimeOut.C:
 			fmt.Println("Motor has failed")
@@ -112,7 +113,7 @@ func StateMachine(elevatorMatrix [][]int, localElev Elevator,
 			orderManager.InsertState(localElev.ID, int(UNDEFINED), elevatorMatrix)
 
 			updatedStates := Message{Select: UpdateStates, ID: localElev.ID, State: int(localElev.State), Floor: localElev.Floor, Dir: localElev.Dir}
-			UpdateElevStatusch <- updatedStates
+			LocalStateUpdatech <- updatedStates
 		}
 	}
 }

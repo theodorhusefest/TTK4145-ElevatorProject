@@ -48,7 +48,7 @@ func main() {
 	}
 	var (
 		ButtonPressedch     = make(chan ButtonEvent)
-		UpdateElevStatusch  = make(chan Message)
+		LocalStateUpdatech  = make(chan Message)
 		GlobalStateUpdatech = make(chan Message)
 	)
 
@@ -58,17 +58,17 @@ func main() {
 	go io.PollFloorSensor(FSMchans.ArrivedAtFloorChan)
 	go FSM.StateMachine(elevatorMatrix, localElevator, FSMchans,
 		OrderManagerchans.LocalOrderFinishedChan,
-		UpdateElevStatusch)
+		LocalStateUpdatech)
 
 	go io.PollButtons(ButtonPressedch)
 	go orderManager.OrderManager(elevatorMatrix, localElevator,
 		OrderManagerchans, ButtonPressedch, FSMchans.NewLocalOrderChan,
-		SyncElevatorChans.SyncUpdatech, UpdateElevStatusch, GlobalStateUpdatech)
+		SyncElevatorChans.SyncUpdatech, GlobalStateUpdatech)
 
-	go orderManager.UpdateElevStatus(elevatorMatrix, UpdateElevStatusch, SyncElevatorChans.SyncUpdatech, localElevator)
+	go orderManager.UpdateElevStatus(elevatorMatrix, LocalStateUpdatech, SyncElevatorChans.SyncUpdatech, localElevator)
 
 	go syncElevator.SyncElevator(elevatorMatrix, localElevator, SyncElevatorChans,
-		OrderManagerchans.UpdateOrderch, UpdateElevStatusch,
+		OrderManagerchans.UpdateOrderch, LocalStateUpdatech,
 		GlobalStateUpdatech, OrderManagerchans.MatrixUpdatech)
 
 	go peers.Transmitter(15789, strconv.Itoa(localElevator.ID), SyncElevatorChans.TransmitEnable)

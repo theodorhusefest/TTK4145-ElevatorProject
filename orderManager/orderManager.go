@@ -30,7 +30,6 @@ func OrderManager(elevatorMatrix [][]int, localElev Elevator,
 	ButtonPressedchn chan ButtonEvent,
 	NewLocalOrderChan chan int,
 	SyncUpdatech chan []Message,
-	UpdateElevStatusch chan Message,
 	GlobalStateUpdatech chan Message) {
 
 	OrderTimedOut := time.NewTimer(5 * time.Second)
