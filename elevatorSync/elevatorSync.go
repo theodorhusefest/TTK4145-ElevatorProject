@@ -3,24 +3,23 @@ package syncElevator
 import (
 	. "../Config"
 	"../Network/network/peers"
-	//"../Utilities"
 	"fmt"
 	"strconv"
 	"time"
 )
 
 type SyncElevatorChannels struct {
-	OutGoingMsg     chan []Message
-	InCommingMsg    chan []Message
-	SyncUpdatech 	chan []Message
-	PeerUpdate      chan peers.PeerUpdate
-	TransmitEnable  chan bool
+	OutGoingMsg    chan []Message
+	InCommingMsg   chan []Message
+	SyncUpdatech   chan []Message
+	PeerUpdate     chan peers.PeerUpdate
+	TransmitEnable chan bool
 }
 
-func SyncElevator(	elevatorMatrix [][]int, elevator Elevator, 
-					syncChans SyncElevatorChannels, UpdateOrderch chan Message, 
-					UpdateElevStatusch chan Message, GlobalStateUpdatech chan Message, 
-					MatrixUpdatech chan Message) {
+func SyncElevator(elevatorMatrix [][]int, localElev Elevator,
+	syncChans SyncElevatorChannels, UpdateOrderch chan Message,
+	UpdateElevStatusch chan Message, GlobalStateUpdatech chan Message,
+	MatrixUpdatech chan Message) {
 
 	Online := false
 	AckMatrix := [4 + NumFloors][3 * NumElevators]AckStruct{}
@@ -28,17 +27,15 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 
 	broadCastTicker := time.NewTicker(10 * time.Millisecond)
 	ackTicker := time.NewTicker(500 * time.Millisecond)
+
 	for {
 		select {
 
-		// --------------------------------------------------------------------------Case triggered by local ordermanager, change in order
-		case changeInOrder := <-syncChans.SyncUpdatech:
-
+		case syncUpdate := <-syncChans.SyncUpdatech:
 
 			if Online {
-
-
-				for _, message := range changeInOrder {
+				for _, message := range syncUpdate {
+					// If the message is not an ACK, we expect to recieve from other, so set AwaitingAck to true
 					if !message.Ack {
 						for elev := 0; elev < NumElevators; elev++ {
 							switch message.Select {
@@ -48,7 +45,6 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 							case OrderComplete:
 								AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].Data = 0
 								AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[elev] = true
-							case UpdateStates:
 
 							case UpdatedMatrix:
 								ResendMatrixAck.AwaitingAck[elev] = true
@@ -58,11 +54,11 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 				}
 				select {
 				case <-broadCastTicker.C:
-					syncChans.OutGoingMsg <- changeInOrder
+					syncChans.OutGoingMsg <- syncUpdate
 				}
 
-			} else {
-				for _, message := range changeInOrder {
+			} else {  // If currently offline, send directly back to ordermanager
+				for _, message := range syncUpdate {
 					if !(message.Done) {
 						message.Done = true
 						switch message.Select {
@@ -91,18 +87,20 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 				}
 			}
 
-
-		// --------------------------------------------------------------------------Case triggered by bcast.Recieving
 		case msgRecieved := <-syncChans.InCommingMsg:
-
 			for _, message := range msgRecieved {
-				if !(message.Done) {
+				if !(message.Done) { // If message has been seen before, disgard it
 
-					sendAck := Message{Select: message.Select, Done: false, SenderID: elevator.ID, ID: message.ID, Floor: message.Floor, Button: message.Button,
-						State: message.State, Dir: message.Dir, Ack: true, ResendMatrix: message.ResendMatrix, Matrix: message.Matrix}
+					sendAck := Message{Select: message.Select, Done: false, SenderID: localElev.ID,
+						ID: message.ID, Floor: message.Floor, Button: message.Button,
+						State: message.State, Dir: message.Dir, Ack: true,
+						ResendMatrix: message.ResendMatrix, Matrix: message.Matrix}
 
-					if message.SenderID != elevator.ID {
+					// If the recieved message is from someone else, check if ACK or new update
+					// If ACK, update ACK-matrix and execute if all ACKs are recieved
+					// If new update, answer with ACK and execute order
 
+					if message.SenderID != localElev.ID {
 						message.Done = true
 
 						switch message.Select {
@@ -112,7 +110,8 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 								AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[message.SenderID] = false
 								allReady := true
 								for elev := 0; elev < NumElevators; elev++ {
-									if AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[elev] == true && elevatorMatrix[1][elev*3] != 3 {
+									if AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[elev] == true &&
+										elevatorMatrix[1][elev*3] != 3 {
 										allReady = false
 									}
 								}
@@ -121,7 +120,7 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 									UpdateOrderch <- message
 								}
 
-							} else { 
+							} else {
 								sendAck.Ack = true
 								UpdateOrderch <- message
 							}
@@ -132,7 +131,8 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 								AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[message.SenderID] = false
 								allReady := true
 								for elev := 0; elev < NumElevators; elev++ {
-									if AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[elev] == true && elevatorMatrix[1][elev*3] != 3 {
+									if AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[elev] == true &&
+										elevatorMatrix[1][elev*3] != 3 {
 										allReady = false
 									}
 								}
@@ -148,10 +148,6 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 							sendAck.Ack = false
 							GlobalStateUpdatech <- message
 
-						case UpdateOffline:
-						case ACK:
-
-
 						case SendMatrix:
 							if message.Ack {
 								sendAck.Ack = false
@@ -166,7 +162,7 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 								if allReady {
 									MatrixUpdatech <- message
 								}
-							} else { 
+							} else {
 								sendAck.Ack = true
 								MatrixUpdatech <- message
 							}
@@ -185,15 +181,13 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 								if allReady {
 									MatrixUpdatech <- message
 								}
-							} else { 
+							} else {
 								sendAck.Ack = true
 								MatrixUpdatech <- message
 							}
 						}
 
-
-
-					} else { 
+					} else {
 						sendAck.Ack = false
 						message.Done = true
 						switch message.Select {
@@ -201,7 +195,8 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 							AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[message.SenderID] = false
 							allReady := true
 							for elev := 0; elev < NumElevators; elev++ {
-								if AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[elev] == true && elevatorMatrix[1][elev*3] != 3 {
+								if AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[elev] == true &&
+									elevatorMatrix[1][elev*3] != 3 {
 									allReady = false
 								}
 							}
@@ -213,7 +208,8 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 							AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[message.SenderID] = false
 							allReady := true
 							for elev := 0; elev < NumElevators; elev++ {
-								if AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[elev] == true && elevatorMatrix[1][elev*3] != 3 {
+								if AckMatrix[len(AckMatrix)-message.Floor-1][message.ID*3+int(message.Button)].AwaitingAck[elev] == true &&
+									elevatorMatrix[1][elev*3] != 3 {
 									allReady = false
 								}
 							}
@@ -246,8 +242,10 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 					}
 
 					if sendAck.Ack {
-						OutAck := []Message{{Select: sendAck.Select, Done: false, SenderID: elevator.ID, ID: sendAck.ID, Floor: sendAck.Floor, Button: sendAck.Button,
-							State: sendAck.State, Dir: sendAck.Dir, Ack: true, ResendMatrix: sendAck.ResendMatrix, Matrix: sendAck.Matrix}}
+						OutAck := []Message{{Select: sendAck.Select, Done: false, SenderID: localElev.ID,
+							ID: sendAck.ID, Floor: sendAck.Floor, Button: sendAck.Button,
+							State: sendAck.State, Dir: sendAck.Dir, Ack: true,
+							ResendMatrix: sendAck.ResendMatrix, Matrix: sendAck.Matrix}}
 
 						select {
 						case <-broadCastTicker.C:
@@ -258,19 +256,21 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 				}
 			}
 
-
 		case <-ackTicker.C:
 
 			for floor := 4; floor < 4+NumFloors; floor++ {
 				for button := 0; button < 3*NumElevators; button++ {
 					for elev := 0; elev < NumElevators; elev++ {
-						if AckMatrix[floor][button].AwaitingAck[elev] == true && elevatorMatrix[1][elev*3] != 3 && elevator.ID != elev {
-							//utilities.PrintAckMatrix(AckMatrix, NumFloors , NumElevators)
+						if AckMatrix[floor][button].AwaitingAck[elev] == true && elevatorMatrix[1][elev*3] != 3 && localElev.ID != elev {
 							ResendOrder := []Message{}
 							if AckMatrix[floor][button].Data == 1 {
-								ResendOrder = []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: (button / NumElevators), Floor: 7 - floor, Button: ButtonType(button % 3)}}
+								ResendOrder = []Message{{Select: NewOrder, Done: false,
+									SenderID: localElev.ID, ID: (button / NumElevators),
+									Floor: 7 - floor, Button: ButtonType(button % 3)}}
 							} else {
-								ResendOrder = []Message{{Select: OrderComplete, Done: false, SenderID: elevator.ID, ID: (button / NumElevators), Floor: 7 - floor, Button: ButtonType(button % 3)}}
+								ResendOrder = []Message{{Select: OrderComplete, Done: false,
+									SenderID: localElev.ID, ID: (button / NumElevators),
+									Floor: 7 - floor, Button: ButtonType(button % 3)}}
 							}
 							select {
 							case <-broadCastTicker.C:
@@ -287,30 +287,22 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 				}
 			}
 
-		// --------------------------------------------------------------------------Case triggered by update in peers
 		case p := <-syncChans.PeerUpdate:
 
 			time.Sleep(500 * time.Millisecond)
 			AckMatrix = [4 + NumFloors][3 * NumElevators]AckStruct{}
 
-
-
 			if len(p.New) > 0 {
-				newID, _ := strconv.Atoi(p.New) // ID of new Peer
-
-				if newID == elevator.ID && len(p.Peers) == 1 {
-					// You are alone on network (Either first or someone disappeard)
-					// do nothing
+				newID, _ := strconv.Atoi(p.New)
+				if newID == localElev.ID && len(p.Peers) == 1 {
 					Online = true
 					fmt.Println(newID, "is online")
-				} else if newID == elevator.ID && len(p.Peers) > 1 {
-					// Either been offline or first time online
-					// Ask for matrix
+				} else if newID == localElev.ID && len(p.Peers) > 1 {
+
 					Online = true
 					fmt.Println(newID, "is also online")
 
-				} else if newID != elevator.ID && Online {
-					// Already online, send matrix to new
+				} else if newID != localElev.ID && Online {
 					message := Message{Select: SendMatrix, ID: newID}
 					MatrixUpdatech <- message
 				}
@@ -318,8 +310,7 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 
 			for _, peerLost := range p.Lost {
 				newID, _ := strconv.Atoi(peerLost)
-				if newID != elevator.ID {
-					// Someone else is offline
+				if newID != localElev.ID {
 					fmt.Println(newID, "is offline")
 					message := Message{Select: UpdateOffline, ID: newID, Done: true}
 					GlobalStateUpdatech <- message

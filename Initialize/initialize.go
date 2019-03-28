@@ -6,17 +6,16 @@ import (
 	"fmt"
 )
 
-
 //function which puts the posistion of elevator ID into the elevator matrix.
 //if elevator is not on a floor, the elevator moves downwards until it hits a sensor
 func InitElevator(elevator Elevator, matrix [][]int, channelFloor chan int) {
 
-	io.SetMotorDirection(DIR_Down)                  //elevator goes downwards
+	io.SetMotorDirection(DIR_Down) //elevator goes downwards
 	go io.PollFloorSensor(channelFloor)
-	currentFloor := <- channelFloor      //the floor is put onto channelFloor
-	matrix[2][elevator.ID*3] = currentFloor  //channelFloor is stored in matrix
+	currentFloor := <-channelFloor          //the floor is put onto channelFloor
+	matrix[2][elevator.ID*3] = currentFloor //channelFloor is stored in matrix
 	elevator.Floor = currentFloor
-	io.SetMotorDirection(DIR_Stop)                   //elevator stops
+	io.SetMotorDirection(DIR_Stop) //elevator stops
 	InitLights()
 
 }
@@ -52,7 +51,6 @@ func Initialize(numFloors int, numElevators int) ([][]int, Elevator) {
 	}
 
 	elev := Elevator{ID: inp, State: IDLE}
-
 
 	elevatorMatrix := InitializeMatrix()
 	elevatorMatrix[0][3*elev.ID] = elev.ID

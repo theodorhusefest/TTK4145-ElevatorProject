@@ -6,10 +6,10 @@ const (
 )
 
 type Elevator struct {
-  ID    int
-  State ElevState
-  Floor int
-  Dir   MotorDirection
+	ID    int
+	State ElevState
+	Floor int
+	Dir   MotorDirection
 }
 
 type MotorDirection int
@@ -36,12 +36,11 @@ type ButtonEvent struct {
 type ElevState int
 
 const (
-	IDLE     ElevState = iota
-	MOVING  
-	DOOROPEN 
-	UNDEFINED  
+	IDLE ElevState = iota
+	MOVING
+	DOOROPEN
+	UNDEFINED
 )
-
 
 type MessageType int
 
@@ -85,10 +84,7 @@ type Message struct {
 
 }
 
-
 type AckStruct struct {
-	Data int
+	Data        int
 	AwaitingAck [NumElevators]bool
 }
-
-

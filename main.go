@@ -2,9 +2,9 @@ package main
 
 import (
 	. "./Config"
-	"./Initialize"
 	"./FSM"
 	"./IO"
+	"./Initialize"
 	"./Network/network/bcast"
 	"./Network/network/peers"
 	"./elevatorSync"
@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	
+
 	floorInp := flag.Int("numFloors", 4, "an int")
 	elevInp := flag.Int("numElevators", 3, "an int")
 	portInp := flag.String("port", "15657", "a string")
@@ -22,7 +22,6 @@ func main() {
 	flag.Parse()
 
 	elevatorMatrix, localElevator := initialize.Initialize(*floorInp, *elevInp)
-
 
 	io.Init("localhost:"+(*portInp), NumFloors)
 
@@ -34,22 +33,22 @@ func main() {
 	}
 	// Channels for OrderManager
 	OrderManagerchans := orderManager.OrderManagerChannels{
-		LocalOrderFinishedChan: make(chan int,2),
+		LocalOrderFinishedChan: make(chan int, 2),
 		NewLocalOrderch:        make(chan Message, 2),
 		UpdateOrderch:          make(chan Message, 2),
 		MatrixUpdatech:         make(chan Message),
 	}
 	// Channels for SyncElevator
 	SyncElevatorChans := syncElevator.SyncElevatorChannels{
-		OutGoingMsg:     make(chan []Message,2),
-		InCommingMsg:    make(chan []Message,2),
-		SyncUpdatech: make(chan []Message,2),
-		PeerUpdate:      make(chan peers.PeerUpdate,2),
-		TransmitEnable:  make(chan bool),
+		OutGoingMsg:    make(chan []Message, 2),
+		InCommingMsg:   make(chan []Message, 2),
+		SyncUpdatech:   make(chan []Message, 2),
+		PeerUpdate:     make(chan peers.PeerUpdate, 2),
+		TransmitEnable: make(chan bool),
 	}
 	var (
-		ButtonPressedch = make(chan ButtonEvent)
-		UpdateElevStatusch = make(chan Message)
+		ButtonPressedch     = make(chan ButtonEvent)
+		UpdateElevStatusch  = make(chan Message)
 		GlobalStateUpdatech = make(chan Message)
 	)
 
@@ -57,20 +56,20 @@ func main() {
 	initialize.InitElevator(localElevator, elevatorMatrix, channelFloor)
 
 	go io.PollFloorSensor(FSMchans.ArrivedAtFloorChan)
-	go FSM.StateMachine(elevatorMatrix, localElevator, FSMchans, 
-						OrderManagerchans.LocalOrderFinishedChan, 
-						UpdateElevStatusch )
+	go FSM.StateMachine(elevatorMatrix, localElevator, FSMchans,
+		OrderManagerchans.LocalOrderFinishedChan,
+		UpdateElevStatusch)
 
 	go io.PollButtons(ButtonPressedch)
-	go orderManager.OrderManager(elevatorMatrix, localElevator, 
-								OrderManagerchans, ButtonPressedch, FSMchans.NewLocalOrderChan,
-								SyncElevatorChans.SyncUpdatech, UpdateElevStatusch, GlobalStateUpdatech)
+	go orderManager.OrderManager(elevatorMatrix, localElevator,
+		OrderManagerchans, ButtonPressedch, FSMchans.NewLocalOrderChan,
+		SyncElevatorChans.SyncUpdatech, UpdateElevStatusch, GlobalStateUpdatech)
 
 	go orderManager.UpdateElevStatus(elevatorMatrix, UpdateElevStatusch, SyncElevatorChans.SyncUpdatech, localElevator)
 
-	go syncElevator.SyncElevator(elevatorMatrix, localElevator, SyncElevatorChans, 
-								OrderManagerchans.UpdateOrderch, UpdateElevStatusch, 
-								GlobalStateUpdatech, OrderManagerchans.MatrixUpdatech)
+	go syncElevator.SyncElevator(elevatorMatrix, localElevator, SyncElevatorChans,
+		OrderManagerchans.UpdateOrderch, UpdateElevStatusch,
+		GlobalStateUpdatech, OrderManagerchans.MatrixUpdatech)
 
 	go peers.Transmitter(15789, strconv.Itoa(localElevator.ID), SyncElevatorChans.TransmitEnable)
 	go peers.Receiver(15789, SyncElevatorChans.PeerUpdate)

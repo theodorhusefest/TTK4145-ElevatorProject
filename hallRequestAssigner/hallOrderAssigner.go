@@ -9,15 +9,15 @@ import (
 )
 
 type HallAssignerElev struct {
-	Behaviour   string          				`json:"behaviour"`
-	Floor       int             				`json:"floor"`
-	Direction   string          				`json:"direction"`
-	CabRequests [NumFloors]bool 				`json:"cabRequests"`
+	Behaviour   string          `json:"behaviour"`
+	Floor       int             `json:"floor"`
+	Direction   string          `json:"direction"`
+	CabRequests [NumFloors]bool `json:"cabRequests"`
 }
 
 type HallAssignerInput struct {
-	HallRequests [NumFloors][2]bool           	`json:"hallRequests"`
-	States       map[string]*HallAssignerElev 	`json:"states"`
+	HallRequests [NumFloors][2]bool           `json:"hallRequests"`
+	States       map[string]*HallAssignerElev `json:"states"`
 }
 
 func AssignHallOrder(newGlobalOrder ButtonEvent, elevatorMatrix [][]int, elevator Elevator) []Message {
