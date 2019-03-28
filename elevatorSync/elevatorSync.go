@@ -12,10 +12,9 @@ import (
 type SyncElevatorChannels struct {
 	OutGoingMsg     chan []Message
 	InCommingMsg    chan []Message
-	ChangeInOrderch chan []Message
+	SyncUpdatech 	chan []Message
 	PeerUpdate      chan peers.PeerUpdate
 	TransmitEnable  chan bool
-	BroadcastTicker chan bool
 }
 
 func SyncElevator(	elevatorMatrix [][]int, elevator Elevator, 
@@ -33,7 +32,7 @@ func SyncElevator(	elevatorMatrix [][]int, elevator Elevator,
 		select {
 
 		// --------------------------------------------------------------------------Case triggered by local ordermanager, change in order
-		case changeInOrder := <-syncChans.ChangeInOrderch:
+		case changeInOrder := <-syncChans.SyncUpdatech:
 
 
 			if Online {

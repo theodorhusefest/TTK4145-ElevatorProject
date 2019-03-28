@@ -6,8 +6,6 @@ const (
 )
 
 type Elevator struct {
-  NumFloors int
-  NumElevators int
   ID    int
   State ElevState
   Floor int

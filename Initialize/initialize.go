@@ -51,7 +51,7 @@ func Initialize(numFloors int, numElevators int) ([][]int, Elevator) {
 		fmt.Println("Error in input!")
 	}
 
-	elev := Elevator{NumFloors: numFloors, NumElevators: numElevators, ID: inp, State: IDLE}
+	elev := Elevator{ID: inp, State: IDLE}
 
 
 	elevatorMatrix := InitializeMatrix()

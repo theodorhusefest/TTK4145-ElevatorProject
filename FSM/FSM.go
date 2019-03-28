@@ -15,7 +15,9 @@ type FSMchannels struct {
 	DoorTimeoutChan    chan bool
 }
 
-func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateElevStatusch chan Message, elevatorMatrix [][]int, elevator Elevator) {
+func StateMachine(	elevatorMatrix [][]int, localElev Elevator, 
+					FSMchans FSMchannels, LocalOrderFinishedChan chan int, 
+					UpdateElevStatusch chan Message) {
 
 	doorOpenTimeOut := time.NewTimer(3 * time.Second)
 	motorFailureTimeOut := time.NewTimer(5 * time.Second)
@@ -28,23 +30,23 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 
 
 
-			switch elevator.State {
+			switch localElev.State {
 			case IDLE:
 
-				elevator.Dir = chooseDirection(elevatorMatrix, elevator)
-				io.SetMotorDirection(elevator.Dir)
+				localElev.Dir = chooseDirection(elevatorMatrix, localElev)
+				io.SetMotorDirection(localElev.Dir)
 
-				orderManager.InsertDirection(elevator.ID, elevator.Dir, elevatorMatrix)
+				orderManager.InsertDirection(localElev.ID, localElev.Dir, elevatorMatrix)
 
-				if elevator.Dir == DIR_Stop {
+				if localElev.Dir == DIR_Stop {
 					io.SetDoorOpenLamp(true)
-					elevator.State = DOOROPEN
-					orderManager.InsertState(elevator.ID, int(DOOROPEN), elevatorMatrix)
+					localElev.State = DOOROPEN
+					orderManager.InsertState(localElev.ID, int(DOOROPEN), elevatorMatrix)
 					doorOpenTimeOut.Reset(3 * time.Second)
-					LocalOrderFinishedChan <- elevator.Floor
+					LocalOrderFinishedChan <- localElev.Floor
 				} else {
-					elevator.State = MOVING
-					orderManager.InsertState(elevator.ID, int(MOVING), elevatorMatrix)
+					localElev.State = MOVING
+					orderManager.InsertState(localElev.ID, int(MOVING), elevatorMatrix)
 					motorFailureTimeOut.Reset(5 * time.Second)
 				}
 
@@ -52,99 +54,99 @@ func StateMachine(FSMchans FSMchannels, LocalOrderFinishedChan chan int, UpdateE
 			case MOVING:
 
 			case DOOROPEN:
-				elevator.Dir = chooseDirection(elevatorMatrix, elevator)
-				if elevator.Floor == newLocalOrder {
+				localElev.Dir = chooseDirection(elevatorMatrix, localElev)
+				if localElev.Floor == newLocalOrder {
 					doorOpenTimeOut.Reset(3 * time.Second)
-					LocalOrderFinishedChan <- elevator.Floor
+					LocalOrderFinishedChan <- localElev.Floor
 				}
 
 			case UNDEFINED:
 				fmt.Println("Motor has failed")
 
 			}
-			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
+			updatedStates := Message{Select: UpdateStates, ID: localElev.ID, State: int(localElev.State), Floor: localElev.Floor, Dir: localElev.Dir}
 			UpdateElevStatusch <- updatedStates
 
 		case currentFloor := <-FSMchans.ArrivedAtFloorChan:
 
-			orderManager.InsertFloor(elevator.ID, currentFloor, elevatorMatrix)
-			elevator.Floor = currentFloor
+			orderManager.InsertFloor(localElev.ID, currentFloor, elevatorMatrix)
+			localElev.Floor = currentFloor
 			io.SetFloorIndicator(currentFloor)
 
-			if shouldStop(elevator.ID, elevator, elevatorMatrix) {
-				elevator.State = DOOROPEN
+			if shouldStop(localElev.ID, localElev, elevatorMatrix) {
+				localElev.State = DOOROPEN
 				io.SetDoorOpenLamp(true)
 				io.SetMotorDirection(DIR_Stop)
 				doorOpenTimeOut.Reset(3 * time.Second)
 				motorFailureTimeOut.Stop()
 
-				orderManager.InsertState(elevator.ID, int(DOOROPEN), elevatorMatrix)
-				orderManager.InsertDirection(elevator.ID, elevator.Dir, elevatorMatrix)
+				orderManager.InsertState(localElev.ID, int(DOOROPEN), elevatorMatrix)
+				orderManager.InsertDirection(localElev.ID, localElev.Dir, elevatorMatrix)
 
-				LocalOrderFinishedChan <- elevator.Floor
-			} else if elevator.State != IDLE {
+				LocalOrderFinishedChan <- localElev.Floor
+			} else if localElev.State != IDLE {
 				motorFailureTimeOut.Reset(5 * time.Second)
 			}
-			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
+			updatedStates := Message{Select: UpdateStates, ID: localElev.ID, State: int(localElev.State), Floor: localElev.Floor, Dir: localElev.Dir}
 			UpdateElevStatusch <- updatedStates
 
 		case <-doorOpenTimeOut.C:
 			io.SetDoorOpenLamp(false)
-			elevator.Dir = chooseDirection(elevatorMatrix, elevator)
-			orderManager.InsertDirection(elevator.ID, elevator.Dir, elevatorMatrix)
-			io.SetMotorDirection(elevator.Dir)
-			LocalOrderFinishedChan <- elevator.Floor
-			if elevator.Dir == DIR_Stop {
-				elevator.State = IDLE
-				orderManager.InsertState(elevator.ID, int(IDLE), elevatorMatrix)
+			localElev.Dir = chooseDirection(elevatorMatrix, localElev)
+			orderManager.InsertDirection(localElev.ID, localElev.Dir, elevatorMatrix)
+			io.SetMotorDirection(localElev.Dir)
+			LocalOrderFinishedChan <- localElev.Floor
+			if localElev.Dir == DIR_Stop {
+				localElev.State = IDLE
+				orderManager.InsertState(localElev.ID, int(IDLE), elevatorMatrix)
 				motorFailureTimeOut.Stop()
 
 			} else {
-				elevator.State = MOVING
-				orderManager.InsertState(elevator.ID, int(MOVING), elevatorMatrix)
+				localElev.State = MOVING
+				orderManager.InsertState(localElev.ID, int(MOVING), elevatorMatrix)
 				motorFailureTimeOut.Reset(5 * time.Second)
 			}
 
-			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
+			updatedStates := Message{Select: UpdateStates, ID: localElev.ID, State: int(localElev.State), Floor: localElev.Floor, Dir: localElev.Dir}
 			UpdateElevStatusch <- updatedStates
 
 		case <- motorFailureTimeOut.C:
 			fmt.Println("Motor has failed")
-			elevator.State = UNDEFINED
-			orderManager.InsertState(elevator.ID, int(UNDEFINED), elevatorMatrix)
+			localElev.State = UNDEFINED
+			orderManager.InsertState(localElev.ID, int(UNDEFINED), elevatorMatrix)
 
-			updatedStates := Message{Select: UpdateStates, ID: elevator.ID, State: int(elevator.State), Floor: elevator.Floor, Dir: elevator.Dir}
+			updatedStates := Message{Select: UpdateStates, ID: localElev.ID, State: int(localElev.State), Floor: localElev.Floor, Dir: localElev.Dir}
 			UpdateElevStatusch <- updatedStates
 		}
 	}
 }
 
-func chooseDirection(elevatorMatrix [][]int, elevator Elevator) MotorDirection {
+func chooseDirection(elevatorMatrix [][]int, localElev Elevator) MotorDirection {
 
-	switch elevator.Dir {
+	switch localElev.Dir {
 	case DIR_Up:
-		if isOrderAbove(elevator.ID, elevator.Floor, elevatorMatrix) {
+		if isOrderAbove(localElev.ID, localElev.Floor, elevatorMatrix) {
 			return DIR_Up
 		}
-		if isOrderBelow(elevator.ID, elevator.Floor, elevatorMatrix) {
+		if isOrderBelow(localElev.ID, localElev.Floor, elevatorMatrix) {
 			return DIR_Down
 		}
 		return DIR_Stop
 
 	case DIR_Down:
-		if isOrderBelow(elevator.ID, elevator.Floor, elevatorMatrix) {
+		if isOrderBelow(localElev.ID, localElev.Floor, elevatorMatrix) {
 			return DIR_Down
 		}
-		if isOrderAbove(elevator.ID, elevator.Floor, elevatorMatrix) {
+		if isOrderAbove(localElev.ID, localElev.Floor, elevatorMatrix) {
 			return DIR_Up
 		}
 		return DIR_Stop
 
 	default:
-		if isOrderAbove(elevator.ID, elevator.Floor, elevatorMatrix) {
+		if isOrderAbove(localElev.ID, localElev.Floor, elevatorMatrix) {
 			return DIR_Up
 		}
-		if isOrderBelow(elevator.ID, elevator.Floor, elevatorMatrix) {
+		if isOrderBelow(localElev.ID, localElev.Floor, elevatorMatrix) {
 			return DIR_Down
 		}
 		return DIR_Stop
@@ -186,22 +188,22 @@ func isOrderBelow(id int, currentFloor int, elevatorMatrix [][]int) bool {
 	return false
 }
 
-func shouldStop(id int, elevator Elevator, elevatorMatrix [][]int) bool {
+func shouldStop(id int, localElev Elevator, elevatorMatrix [][]int) bool {
 	//Cab call is pressed, stop
-	if elevatorMatrix[len(elevatorMatrix)-elevator.Floor-1][id*NumElevators+2] == 1 {
+	if elevatorMatrix[len(elevatorMatrix)-localElev.Floor-1][id*NumElevators+2] == 1 {
 		return true
 	}
-	switch elevator.Dir {
+	switch localElev.Dir {
 	case DIR_Up:
-		if elevatorMatrix[len(elevatorMatrix)-elevator.Floor-1][id*NumElevators] == 1 {
+		if elevatorMatrix[len(elevatorMatrix)-localElev.Floor-1][id*NumElevators] == 1 {
 			return true
-		} else if elevatorMatrix[len(elevatorMatrix)-elevator.Floor-1][id*NumElevators+1] == 1 && !isOrderAbove(id, elevator.Floor, elevatorMatrix) {
+		} else if elevatorMatrix[len(elevatorMatrix)-localElev.Floor-1][id*NumElevators+1] == 1 && !isOrderAbove(id, localElev.Floor, elevatorMatrix) {
 			return true
 		}
 	case DIR_Down:
-		if elevatorMatrix[len(elevatorMatrix)-elevator.Floor-1][id*NumElevators+1] == 1 {
+		if elevatorMatrix[len(elevatorMatrix)-localElev.Floor-1][id*NumElevators+1] == 1 {
 			return true
-		} else if elevatorMatrix[len(elevatorMatrix)-elevator.Floor-1][id*NumElevators] == 1 && !isOrderBelow(id, elevator.Floor, elevatorMatrix) {
+		} else if elevatorMatrix[len(elevatorMatrix)-localElev.Floor-1][id*NumElevators] == 1 && !isOrderBelow(id, localElev.Floor, elevatorMatrix) {
 			return true
 		}
 	}

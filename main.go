@@ -1,10 +1,8 @@
 package main
 
 import (
-	//  "fmt"
 	. "./Config"
 	"./Initialize"
-	//"./Utilities"
 	"./FSM"
 	"./IO"
 	"./Network/network/bcast"
@@ -13,7 +11,6 @@ import (
 	"./orderManager"
 	"flag"
 	"strconv"
-	"time"
 )
 
 func main() {
@@ -44,12 +41,11 @@ func main() {
 	}
 	// Channels for SyncElevator
 	SyncElevatorChans := syncElevator.SyncElevatorChannels{
-		OutGoingMsg:     make(chan []Message,10),
-		InCommingMsg:    make(chan []Message,10),
-		ChangeInOrderch: make(chan []Message,10),
+		OutGoingMsg:     make(chan []Message,2),
+		InCommingMsg:    make(chan []Message,2),
+		SyncUpdatech: make(chan []Message,2),
 		PeerUpdate:      make(chan peers.PeerUpdate,2),
 		TransmitEnable:  make(chan bool),
-		BroadcastTicker: make(chan bool),
 	}
 	var (
 		ButtonPressedch = make(chan ButtonEvent)
@@ -60,29 +56,27 @@ func main() {
 	channelFloor := make(chan int)
 	initialize.InitElevator(localElevator, elevatorMatrix, channelFloor)
 
-	// Goroutines used in FSM
 	go io.PollFloorSensor(FSMchans.ArrivedAtFloorChan)
-	go FSM.StateMachine(FSMchans, OrderManagerchans.LocalOrderFinishedChan, UpdateElevStatusch, elevatorMatrix, localElevator)
+	go FSM.StateMachine(elevatorMatrix, localElevator, FSMchans, 
+						OrderManagerchans.LocalOrderFinishedChan, 
+						UpdateElevStatusch )
 
-	// Goroutines used in OrderManager
 	go io.PollButtons(ButtonPressedch)
-	go orderManager.OrderManager(elevatorMatrix, localElevator, OrderManagerchans, ButtonPressedch, FSMchans.NewLocalOrderChan,
-		SyncElevatorChans.ChangeInOrderch, UpdateElevStatusch, GlobalStateUpdatech)
+	go orderManager.OrderManager(elevatorMatrix, localElevator, 
+								OrderManagerchans, ButtonPressedch, FSMchans.NewLocalOrderChan,
+								SyncElevatorChans.SyncUpdatech, UpdateElevStatusch, GlobalStateUpdatech)
 
-	go orderManager.UpdateElevStatus(elevatorMatrix, UpdateElevStatusch, SyncElevatorChans.ChangeInOrderch, localElevator)
+	go orderManager.UpdateElevStatus(elevatorMatrix, UpdateElevStatusch, SyncElevatorChans.SyncUpdatech, localElevator)
 
-	// Goroutines used in SyncElevator
-	go syncElevator.SyncElevator(elevatorMatrix, localElevator, SyncElevatorChans, OrderManagerchans.UpdateOrderch, UpdateElevStatusch, GlobalStateUpdatech, OrderManagerchans.MatrixUpdatech)
+	go syncElevator.SyncElevator(elevatorMatrix, localElevator, SyncElevatorChans, 
+								OrderManagerchans.UpdateOrderch, UpdateElevStatusch, 
+								GlobalStateUpdatech, OrderManagerchans.MatrixUpdatech)
 
-	// Goroutines used in Network/Peers
 	go peers.Transmitter(15789, strconv.Itoa(localElevator.ID), SyncElevatorChans.TransmitEnable)
 	go peers.Receiver(15789, SyncElevatorChans.PeerUpdate)
 
-	//  Goroutines used in Network/Bcast
 	go bcast.Transmitter(15790, SyncElevatorChans.OutGoingMsg)
 	go bcast.Receiver(15790, SyncElevatorChans.InCommingMsg)
-
-	time.Sleep(10 * time.Second)
 
 	select {}
 

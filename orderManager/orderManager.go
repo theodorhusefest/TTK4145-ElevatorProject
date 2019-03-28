@@ -26,9 +26,13 @@ type OrderManagerChannels struct {
 	MatrixUpdatech         chan Message
 }
 
-func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans OrderManagerChannels,
-					ButtonPressedchn chan ButtonEvent, NewLocalOrderChan chan int, ChangeInOrderch chan []Message, 
-					UpdateElevStatusch chan Message, GlobalStateUpdatech chan Message) {
+func OrderManager(	elevatorMatrix [][]int, localElev Elevator, 
+					OrderManagerChans OrderManagerChannels,
+					ButtonPressedchn chan ButtonEvent, 
+					NewLocalOrderChan chan int, 
+					SyncUpdatech chan []Message, 
+					UpdateElevStatusch chan Message, 
+					GlobalStateUpdatech chan Message) {
 
 	OrderTimedOut := time.NewTimer(5 * time.Second)
 
@@ -39,24 +43,26 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 		// -----------------------------------------------------------------------------------------------------Case triggered by local button
 		case ButtonPressed := <-ButtonPressedchn:
 
-			if elevatorMatrix[1][elevator.ID*NumElevators] != 3 {
+			if elevatorMatrix[1][localElev.ID*NumElevators] != 3 {
 				switch ButtonPressed.Button {
 
 				case BT_Cab:
 
-					newCabOrder := []Message{{Select: NewOrder, Done: false, SenderID: elevator.ID, ID: elevator.ID, Floor: ButtonPressed.Floor, Button: ButtonPressed.Button}}
+					newCabOrder := []Message{{Select: NewOrder, Done: false, SenderID: localElev.ID, 
+												ID: localElev.ID, Floor: ButtonPressed.Floor, 
+												Button: ButtonPressed.Button}}
 					// Send message to sync
-					fmt.Println("Cab order at elevator:", elevator.ID)
-					ChangeInOrderch <- newCabOrder
+					fmt.Println("Cab order at elevator:", localElev.ID)
+					SyncUpdatech <- newCabOrder
 
 				default:
 
-					newHallOrders := hallOrderAssigner.AssignHallOrder(ButtonPressed, elevatorMatrix, elevator)
+					newHallOrders := hallOrderAssigner.AssignHallOrder(ButtonPressed, elevatorMatrix, localElev)
 
 
-					fmt.Println("Hall order at elevator:", elevator.ID)
+					fmt.Println("Hall order at elevator:", localElev.ID)
 
-					ChangeInOrderch <- newHallOrders
+					SyncUpdatech <- newHallOrders
 				}
 
 			OrderTimedOut.Reset(10 * time.Second)
@@ -69,15 +75,15 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 			case NewOrder:
 				localOrder := ButtonEvent{Floor: OrderUpdate.Floor, Button: OrderUpdate.Button}
 				addOrder(OrderUpdate.ID, elevatorMatrix, localOrder)
-				setLight(OrderUpdate, elevator)
-				if OrderUpdate.ID == elevator.ID {
+				setLight(OrderUpdate, localElev)
+				if OrderUpdate.ID == localElev.ID {
 					NewLocalOrderChan <- OrderUpdate.Floor
 				}
 
 
 			case OrderComplete:
-				clearFloors(OrderUpdate.Floor, elevatorMatrix, elevator, OrderUpdate.ID)
-				clearLight(OrderUpdate.Floor, elevator, OrderUpdate.ID)
+				clearFloors(OrderUpdate.Floor, elevatorMatrix, localElev, OrderUpdate.ID)
+				clearLight(OrderUpdate.Floor, localElev, OrderUpdate.ID)
 			}
 			OrderTimedOut.Reset(10 * time.Second)
 
@@ -101,29 +107,29 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 			switch MatrixUpdate.Select {
 			case SendMatrix:
 				fmt.Println("Sending matrix")
-				outMessage := []Message{{Select: UpdatedMatrix, SenderID: elevator.ID, Matrix: elevatorMatrix, ID: MatrixUpdate.ID}}
-				ChangeInOrderch <- outMessage
+				outMessage := []Message{{Select: UpdatedMatrix, SenderID: localElev.ID, Matrix: elevatorMatrix, ID: MatrixUpdate.ID}}
+				SyncUpdatech <- outMessage
 
 			case UpdatedMatrix:
-				if MatrixUpdate.ID == elevator.ID {
+				if MatrixUpdate.ID == localElev.ID {
 					elevatorMatrix = updateOrdersInMatrix(elevatorMatrix, MatrixUpdate.Matrix, MatrixUpdate.ID)
-					outMessage := []Message{{Select:UpdateStates ,ID: elevator.ID, State: int(elevator.State), Floor: elevatorMatrix[2][elevator.ID*3], Dir: elevator.Dir}}
-					ChangeInOrderch <- outMessage
+					outMessage := []Message{{Select:UpdateStates ,ID: localElev.ID, State: int(localElev.State), Floor: elevatorMatrix[2][localElev.ID*3], Dir: localElev.Dir}}
+					SyncUpdatech <- outMessage
 				}
 			}
 
 		// -----------------------------------------------------------------------------------------------------Case triggered by elevator done with order
 		case LocalOrderFinished := <-OrderManagerChans.LocalOrderFinishedChan:
 
-			outMessage := []Message{{Select: OrderComplete, SenderID: elevator.ID, Done: false, ID: elevator.ID, Floor: LocalOrderFinished}}
+			outMessage := []Message{{Select: OrderComplete, SenderID: localElev.ID, Done: false, ID: localElev.ID, Floor: LocalOrderFinished}}
 
-			ChangeInOrderch <- outMessage
+			SyncUpdatech <- outMessage
 
 
 		// ------------------------------------------------------------------------------------------------------- Case triggered every 5 seconds to check if orders left
 		case <- OrderTimedOut.C:
 			fmt.Println("Checking for lost orders")
-      		checkLostOrders(elevatorMatrix, elevator, NewLocalOrderChan)
+      		checkLostOrders(elevatorMatrix, localElev, NewLocalOrderChan)
 			OrderTimedOut.Reset(10 * time.Second)
 
 
@@ -133,7 +139,7 @@ func OrderManager(	elevatorMatrix [][]int, elevator Elevator, OrderManagerChans 
 	}
 }
 
-func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message, ChangeInOrderch chan []Message, elevator Elevator) {
+func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message, SyncUpdatech chan []Message, localElev Elevator) {
   for {
     select {
     case message := <-UpdateElevStatusch:
@@ -144,36 +150,36 @@ func UpdateElevStatus(elevatorMatrix [][]int, UpdateElevStatusch chan Message, C
 
       OutMessage := []Message{message}
 
-      OutMessage[0].SenderID = elevator.ID
+      OutMessage[0].SenderID = localElev.ID
 
       if !message.Done {
-        ChangeInOrderch <- OutMessage
+        SyncUpdatech <- OutMessage
 
       }
     }
   }
 }
 
-func checkLostOrders(elevatorMatrix [][]int, elevator Elevator, NewLocalOrderChan chan int) {
+func checkLostOrders(elevatorMatrix [][]int, localElev Elevator, NewLocalOrderChan chan int) {
 	for floor := 0; floor < NumFloors; floor++ {
 		for button := 0; button < 3; button++ {
       for elev := 0; elev < NumElevators; elev++ {
-        if elevatorMatrix[1][3*elev] == int(UNDEFINED) && elev != elevator.ID && button != 2 {
+        if elevatorMatrix[1][3*elev] == int(UNDEFINED) && elev != localElev.ID && button != 2 {
             // check others matrix
             if elevatorMatrix[len(elevatorMatrix)-floor - 1][button+elev*NumElevators] == 1 {
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
-              addOrder(elevator.ID, elevatorMatrix, lostOrder)
+              addOrder(localElev.ID, elevatorMatrix, lostOrder)
               lightOrder := Message{ID:elev, Floor: floor, Button: ButtonType(button)}
-              setLight(lightOrder, elevator)
-              clearFloors2(floor, elevatorMatrix, elevator, elev)
+              setLight(lightOrder, localElev)
+              clearFloors2(floor, elevatorMatrix, localElev, elev)
               NewLocalOrderChan <- floor
             }
-        } else if elevatorMatrix[1][3*elev] != int(UNDEFINED) && elev == elevator.ID  {
+        } else if elevatorMatrix[1][3*elev] != int(UNDEFINED) && elev == localElev.ID  {
             if elevatorMatrix[len(elevatorMatrix)-floor - 1][button+elev*NumElevators] == 1 {
               lostOrder := ButtonEvent{Floor: floor, Button: ButtonType(button)}
               lightOrder := Message{ID:elev, Floor: floor, Button: ButtonType(button)}
-              setLight(lightOrder, elevator)
-              addOrder(elevator.ID, elevatorMatrix, lostOrder)
+              setLight(lightOrder, localElev)
+              addOrder(localElev.ID, elevatorMatrix, lostOrder)
               NewLocalOrderChan <- floor
             }
         }
@@ -200,17 +206,17 @@ func addOrder(id int, matrix [][]int, buttonPressed ButtonEvent) [][]int {
 	return matrix
 }
 
-func clearFloors(currentFloor int, elevatorMatrix [][]int, elevator Elevator, messageID int) {
+func clearFloors(currentFloor int, elevatorMatrix [][]int, localElev Elevator, messageID int) {
 	for button := 0; button < 3; button++ {
 		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+messageID*NumElevators] = 0
 	}
 }
 
-func clearFloors2(currentFloor int, elevatorMatrix [][]int, elevator Elevator, messageID int) {
+func clearFloors2(currentFloor int, elevatorMatrix [][]int, localElev Elevator, messageID int) {
 	for button := 0; button < 2; button++ {
 		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][button+messageID*NumElevators] = 0
 	}
-	if messageID == elevator.ID {
+	if messageID == localElev.ID {
 		elevatorMatrix[len(elevatorMatrix)-currentFloor-1][2+messageID*NumElevators] = 0
 
 	}
@@ -240,8 +246,8 @@ func InsertDirection(id int, dir MotorDirection, matrix [][]int) {
 	}
 }
 
-func setLight(illuminateOrder Message, elevator Elevator) {
-	if illuminateOrder.ID == elevator.ID {
+func setLight(illuminateOrder Message, localElev Elevator) {
+	if illuminateOrder.ID == localElev.ID {
 		io.SetButtonLamp(illuminateOrder.Button, illuminateOrder.Floor, true)
 	} else if illuminateOrder.Button == BT_Cab {
 
@@ -250,8 +256,8 @@ func setLight(illuminateOrder Message, elevator Elevator) {
 	}
 }
 
-func clearLight(LocalOrderFinished int, elevator Elevator, messageID int) {
-	if elevator.ID == messageID {
+func clearLight(LocalOrderFinished int, localElev Elevator, messageID int) {
+	if localElev.ID == messageID {
 		io.SetButtonLamp(BT_Cab, LocalOrderFinished, false)
 	}
 	io.SetButtonLamp(BT_HallUp, LocalOrderFinished, false)
