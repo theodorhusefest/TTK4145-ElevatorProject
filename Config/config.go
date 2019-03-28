@@ -58,30 +58,25 @@ const (
 type Message struct {
 	// Select different cases of message based on value
 	Select MessageType
-	// Message.Done = true: Message has been processed
 	Done bool
-
 	SenderID int
 
-	// Select = 1: NEW ORDER
-	// Select = 2: AN ORDER HAS BEEN EXCECUTED
+	// Select = 1: New order
+	// Select = 2: Order complete
 	ID     int
 	Floor  int
 	Button ButtonType
 
-	// Select = 3: UPDATE STATE/FLOOR/DIR TO A GIVEN ELEVATOR
+	// Select = 3: Update state/floor/diretion
 	State int
 	Dir   MotorDirection
 
-	// Select = 4: ACKNOWLEDGE
+	// Select = 4: Acknowledge msg
 	Ack bool
 
-	// Select = 5: Ask for whole matrix
+	// Select = 5: Resend whole matrix
 	ResendMatrix bool
 	Matrix       [][]int
-
-	// Select = 6 Resend message
-
 }
 
 type AckStruct struct {
