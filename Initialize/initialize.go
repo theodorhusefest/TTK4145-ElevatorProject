@@ -58,11 +58,3 @@ func Initialize(numFloors int, numElevators int) ([][]int, Elevator) {
 	return elevatorMatrix, elev
 }
 
-func AssignIDs(matrix [][]int) {
-	//assign ID's to elevators
-	id := 0
-	for i := 0; i < len(matrix[0]); i += 3 {
-		matrix[0][i] = id
-		id++
-	}
-}
