@@ -1,3 +1,7 @@
+We did not make this module ourselves, as it was handed out on Blackboard.
+Source: Blackboard -> TTK4145
+
+
 <<<<<<< HEAD
 Network module for Go (UDP broadcast only)
 ==========================================
