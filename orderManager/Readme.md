@@ -1,6 +1,6 @@
 ### Order Manager
 
-This is the module responsible to have control over the elevator matrix, forwarding information to the sync-module from FSM and triggering FSM when having orders to be done.
+This is the module responsible to have control over the elevator matrix, forwarding information to the sync-module from FSM and triggering FSM when having orders to be done. The module add orders to it's local matrix when recieving a global order from the sync module, as well as handling lights. 
 The elevator matrix for a single elevator is structured like this:
 
 |	  			| 			| 			| 
